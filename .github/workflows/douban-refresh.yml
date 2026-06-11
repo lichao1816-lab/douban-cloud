@@ -1,0 +1,40 @@
+# ============================================================
+# 每日抓取(备用方案)。
+# ⚠️ 重要警告:GitHub Actions 跑在机房 IP 上,豆瓣对机房 IP 极敏感,
+#    不配住宅代理(DOUBAN_PROXY)几乎一定被限速/封禁。
+#    首选方案是家里的 Mac mini(住宅 IP),本工作流仅作备份。
+#
+# 配置:仓库 Settings → Secrets and variables → Actions → New repository secret
+#    SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY / SUPABASE_ANON_KEY
+#    DOUBAN_COOKIE / DOUBAN_PROXY(住宅代理,强烈建议)
+# ============================================================
+name: douban-refresh
+
+on:
+  schedule:
+    - cron: '30 2 * * *'   # UTC 02:30 = 北京时间 10:30
+  workflow_dispatch:        # 也支持手动触发
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # 本项目零第三方依赖;若以后加了依赖,取消下面注释
+      # - run: npm ci
+
+      - name: Run daily fetch
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          DOUBAN_COOKIE: ${{ secrets.DOUBAN_COOKIE }}
+          DOUBAN_PROXY: ${{ secrets.DOUBAN_PROXY }}
+        run: node scripts/run-daily.mjs
+        continue-on-error: true   # 被限速(退出码 2)不让整个工作流标红

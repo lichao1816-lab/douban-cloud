@@ -1,0 +1,7 @@
+# 机密 & 生成物,绝不进仓库
+.env
+config.js
+logs/
+node_modules/
+*.log
+.DS_Store

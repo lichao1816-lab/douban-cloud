@@ -1,0 +1,113 @@
+/* 阿尔戈斯 · 豆瓣电影情报 查看端样式(手机优先,亮色简洁) */
+:root {
+  --bg: #f6f7f9;
+  --card: #ffffff;
+  --ink: #1d2129;
+  --sub: #76808a;
+  --line: #e6e8eb;
+  --brand: #2e7d32;      /* 豆瓣绿调 */
+  --brand-soft: #e8f4e9;
+  --warn: #c0392b;
+  --gold: #d48806;
+  --blue: #1668dc;
+  --up: #d4380d;          /* 上涨/新增高亮 */
+  --radius: 12px;
+  --shadow: 0 1px 3px rgba(0,0,0,.06);
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font: 15px/1.5 -apple-system, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  padding-bottom: 40px;
+}
+
+/* 顶栏 */
+.topbar {
+  position: sticky; top: 0; z-index: 10;
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
+  padding: 10px 12px 8px;
+}
+.title-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.topbar h1 { font-size: 16px; margin: 0; font-weight: 700; }
+.updated { font-size: 11px; color: var(--sub); white-space: nowrap; }
+
+/* 分段按钮组 */
+.seg { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+.seg button {
+  flex: 1 1 auto; min-width: 56px;
+  padding: 6px 8px; border: 1px solid var(--line); background: #fff;
+  border-radius: 999px; color: var(--sub); font-size: 13px; cursor: pointer;
+}
+.seg button.active { background: var(--brand); border-color: var(--brand); color: #fff; }
+.seg button em { font-style: normal; font-size: 11px; opacity: .85; margin-left: 2px; }
+
+/* 筛选行 */
+.filters { display: flex; gap: 6px; margin-top: 8px; }
+.filters select, .filters input {
+  flex: 1; min-width: 0; padding: 7px 8px; font-size: 13px;
+  border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink);
+}
+.filters input { flex: 1.4; }
+.count-row { margin-top: 6px; font-size: 12px; color: var(--sub); }
+
+/* 列表 */
+.list { padding: 10px 12px; display: flex; flex-direction: column; gap: 10px; }
+.card {
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+  box-shadow: var(--shadow); padding: 12px;
+}
+.card-head { display: flex; justify-content: space-between; gap: 10px; }
+.film-name { font-size: 15px; font-weight: 600; margin: 0; }
+.film-meta { font-size: 12px; color: var(--sub); margin-top: 3px; }
+.score {
+  font-size: 18px; font-weight: 700; color: var(--gold); white-space: nowrap;
+}
+.score.none { color: var(--sub); font-size: 13px; font-weight: 500; }
+
+/* 趋势行 */
+.trend { display: flex; gap: 12px; margin-top: 8px; font-size: 12px; color: var(--sub); flex-wrap: wrap; }
+.trend .up { color: var(--up); font-weight: 600; }
+.trend .flat { color: var(--sub); }
+
+/* 操作按钮 */
+.actions { display: flex; gap: 8px; margin-top: 10px; }
+.actions a, .actions button {
+  flex: 1; text-align: center; padding: 8px 6px; border-radius: 8px;
+  font-size: 13px; border: 1px solid var(--line); background: #fff; color: var(--ink);
+  cursor: pointer; text-decoration: none;
+}
+.btn-douban { color: var(--blue); border-color: var(--blue); }
+.btn-keep   { color: var(--brand); border-color: var(--brand); }
+.btn-keep.on { background: var(--brand); color: #fff; }
+.btn-drop   { color: var(--warn); border-color: var(--warn); }
+.btn-drop.on { background: var(--warn); color: #fff; }
+
+/* 状态徽标 */
+.badge { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 999px; margin-left: 6px; }
+.badge.保留 { background: var(--brand-soft); color: var(--brand); }
+.badge.淘汰 { background: #fde2e1; color: var(--warn); }
+.badge.待筛 { background: #eef2f5; color: var(--sub); }
+
+/* 空 / 加载 */
+.empty { text-align: center; color: var(--sub); padding: 40px 0; }
+
+/* Toast */
+.toast {
+  position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(20px);
+  background: #1d2129; color: #fff; padding: 8px 14px; border-radius: 8px;
+  font-size: 13px; opacity: 0; pointer-events: none; transition: .25s; z-index: 99;
+}
+.toast.show { opacity: .95; transform: translateX(-50%) translateY(0); }
+
+/* 桌面端:多列 */
+@media (min-width: 720px) {
+  .topbar { padding: 14px 20px 10px; }
+  .topbar h1 { font-size: 18px; }
+  .list { max-width: 1100px; margin: 0 auto; display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
+  .filters { max-width: 1100px; }
+}

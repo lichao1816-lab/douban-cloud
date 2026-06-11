@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>阿尔戈斯 · 豆瓣电影情报</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="title-row">
+      <h1>阿尔戈斯 · 豆瓣电影情报</h1>
+      <span id="updatedAt" class="updated">加载中…</span>
+    </div>
+
+    <!-- 年份切换 -->
+    <div class="seg" id="yearSeg">
+      <button data-year="2026" class="active">2026</button>
+      <button data-year="2027">2027</button>
+      <button data-year="all">全部</button>
+    </div>
+
+    <!-- 状态标签(带计数) -->
+    <div class="seg" id="statusSeg">
+      <button data-status="待筛" class="active">待筛 <em id="c-待筛">0</em></button>
+      <button data-status="保留">保留 <em id="c-保留">0</em></button>
+      <button data-status="淘汰">淘汰 <em id="c-淘汰">0</em></button>
+      <button data-status="all">全部 <em id="c-all">0</em></button>
+    </div>
+
+    <!-- 筛选行 -->
+    <div class="filters">
+      <select id="countrySel"><option value="">全部国家</option></select>
+      <select id="sortSel">
+        <option value="default">默认排序</option>
+        <option value="score_desc">评分高→低</option>
+        <option value="has_score">有分优先</option>
+        <option value="d_star5_desc">今日新增5星</option>
+      </select>
+      <input id="searchBox" type="search" placeholder="搜索片名…" />
+    </div>
+
+    <div class="count-row">
+      <span id="resultCount">0 部</span>
+    </div>
+  </header>
+
+  <main id="list" class="list"></main>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+{
+  "name": "argos-douban-cloud",
+  "version": "1.0.0",
+  "private": true,
+  "description": "阿尔戈斯计划 · 豆瓣电影情报云端(Supabase + 静态查看端 + Node 抓取)",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "seed": "node scripts/seed-supabase.mjs",
+    "backfill": "node scripts/backfill.mjs",
+    "roster": "node scripts/fetch-roster.mjs",
+    "ratings": "node scripts/fetch-ratings.mjs",
+    "daily": "node scripts/run-daily.mjs",
+    "build:config": "node scripts/generate-config.mjs",
+    "serve": "node scripts/serve.mjs"
+  },
+  "dependencies": {}
+}

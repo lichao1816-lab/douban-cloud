@@ -1,0 +1,61 @@
+# ============================================================
+# 发布静态查看端到 GitHub Pages。
+# 部署内容:仓库根目录的 index.html / app.js / styles.css + 生成的 config.js。
+#
+# 前置:仓库 Settings → Pages → Source 选 "GitHub Actions"。
+# Secrets:SUPABASE_URL / SUPABASE_ANON_KEY(只放这两个,绝不放 service_role)。
+# ============================================================
+name: deploy-pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'index.html'
+      - 'app.js'
+      - 'styles.css'
+      - 'scripts/generate-config.mjs'
+      - '.github/workflows/deploy-pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # 用 Secrets 生成 config.js(只含 anon key)
+      - name: Generate config.js
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: node scripts/generate-config.mjs
+
+      # 收集要发布的静态文件到 _site/
+      - name: Assemble site
+        run: |
+          mkdir -p _site
+          cp index.html app.js styles.css config.js _site/
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
