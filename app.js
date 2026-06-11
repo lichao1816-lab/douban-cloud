@@ -45,12 +45,22 @@
 
   // ---------- 数据拉取 ----------
   async function loadFilms() {
-    // 一次性拉全量(字段精简);量大时也可改为按年份分页
-    const url = REST + '/douban_films?select=id,name,country,year,score,status,note,' +
-      'douban_url,star5,d_star5,comments,d_comments&order=year.desc,id.asc&limit=20000';
-    const res = await fetch(url, { headers: HEADERS });
-    if (!res.ok) throw new Error('读取影片失败 ' + res.status);
-    ALL = await res.json();
+    // PostgREST 单次最多返回 1000 行 → 用 Range 头翻页拉全量
+    const base = REST + '/douban_films?select=id,name,country,year,score,status,note,' +
+      'douban_url,star5,d_star5,comments,d_comments&order=year.desc,id.asc';
+    const PAGE = 1000;
+    const out = [];
+    for (let from = 0; ; from += PAGE) {
+      const res = await fetch(base, {
+        headers: { ...HEADERS, 'Range-Unit': 'items', Range: from + '-' + (from + PAGE - 1) },
+      });
+      if (!res.ok) throw new Error('读取影片失败 ' + res.status);
+      const batch = await res.json();
+      if (!Array.isArray(batch) || batch.length === 0) break;
+      out.push(...batch);
+      if (batch.length < PAGE) break;
+    }
+    ALL = out;
   }
 
   async function loadLastRun() {
