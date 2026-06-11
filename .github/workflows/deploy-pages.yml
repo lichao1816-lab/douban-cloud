@@ -15,6 +15,7 @@ on:
       - 'app.js'
       - 'styles.css'
       - 'scripts/generate-config.mjs'
+      - 'config.js'
       - '.github/workflows/deploy-pages.yml'
   workflow_dispatch:
 
@@ -40,12 +41,19 @@ jobs:
         with:
           node-version: '22'
 
-      # 用 Secrets 生成 config.js(只含 anon key)
+      # 优先用 Secrets 生成 config.js;无 Secrets 时用仓库内已提交的 config.js
       - name: Generate config.js
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-        run: node scripts/generate-config.mjs
+        run: |
+          if [ -n "$SUPABASE_URL" ] && [ -n "$SUPABASE_ANON_KEY" ]; then
+            node scripts/generate-config.mjs
+          elif [ -f config.js ]; then
+            echo "未配置 Secrets,使用仓库内已提交的 config.js"
+          else
+            echo "既无 Secrets 也无 config.js" && exit 1
+          fi
 
       # 收集要发布的静态文件到 _site/
       - name: Assemble site

@@ -1,6 +1,6 @@
 # 机密 & 生成物,绝不进仓库
 .env
-config.js
+# config.js 已改为提交进仓库(仅含可公开的 anon key)
 logs/
 node_modules/
 *.log
