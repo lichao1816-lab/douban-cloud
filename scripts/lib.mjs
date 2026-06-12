@@ -247,6 +247,10 @@ export function classifyAbstract(json) {
   if (/真人秀|脱口秀|综艺|talk-show|reality/i.test(genres)) {
     return { isMovie: false, reason: 'variety' };
   }
+  // 类型明确标了「短片」→ 不收(李超 06-12 规则,与片长规则相互独立)
+  if (/短片/.test(genres)) {
+    return { isMovie: false, reason: 'short-genre' };
+  }
   // 片长 ≤ 60min 的短片(纪录/演唱会例外:含这些关键词则保留)
   const keep = /纪录|演唱会|音乐会|concert|documentary/i.test(genres);
   const minMatch = durText.match(/(\d+)\s*分钟/);
@@ -341,4 +345,157 @@ export async function updateFilm(id, patch) {
  */
 export async function insertRun(row) {
   return sb('POST', 'douban_runs', row);
+}
+
+// ============================================================
+// v2 扩展:详情解析 / IMDb / RSS / Box Office Mojo / 豆瓣搜索
+// ============================================================
+
+/** 通用网页抓取(非豆瓣站点,不带豆瓣cookie) */
+export async function fetchText(url, extraHeaders = {}) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 25_000);
+  try {
+    const res = await fetch(url, {
+      headers: {
+        'User-Agent': BROWSER_HEADERS['User-Agent'],
+        'Accept-Language': 'en-US,en;q=0.8,zh-CN;q=0.6',
+        ...extraHeaders,
+      },
+      signal: controller.signal,
+      ...(proxyDispatcher ? { dispatcher: proxyDispatcher } : {}),
+    });
+    if (!res.ok) { console.warn(`[fetchText] HTTP ${res.status} ${url}`); return null; }
+    return await res.text();
+  } catch (e) {
+    console.warn(`[fetchText] ${e.message} ${url}`);
+    return null;
+  } finally { clearTimeout(timer); }
+}
+
+/** 抓豆瓣详情页 HTML(带cookie) */
+export async function doubanSubjectHtml(sid) {
+  return doubanGet(`https://movie.douban.com/subject/${sid}/`, { json: false });
+}
+
+/**
+ * parseSubjectDetail — 从豆瓣详情页解析:原名/全部国家/类型/导演/主演/片长/IMDb id/分数
+ */
+export function parseSubjectDetail(html, knownName = '') {
+  if (!html) return null;
+  const all = (re) => { const out = []; let m; const r = new RegExp(re, 'g');
+    while ((m = r.exec(html))) out.push(m[1].trim()); return out; };
+  const one = (re) => { const m = html.match(re); return m ? m[1].trim() : null; };
+
+  const itemreviewed = one(/property="v:itemreviewed"[^>]*>([^<]+)</);
+  let orig = null;
+  if (itemreviewed && knownName && itemreviewed.startsWith(knownName)) {
+    orig = itemreviewed.slice(knownName.length).trim() || null;
+  }
+  if (!orig) {
+    const aka = one(/又名:<\/span>\s*([^<]+)<br/);
+    if (aka) orig = aka.split('/')[0].trim();
+  }
+  const countries = one(/制片国家\/地区:<\/span>\s*([^<]+)<br/);
+  const genres = all(/property="v:genre">([^<]+)</).join(' / ') || null;
+  const directors = all(/rel="v:directedBy"[^>]*>([^<]+)</).join(' / ') || null;
+  const actors = all(/rel="v:starring"[^>]*>([^<]+)</).slice(0, 3).join(' / ') || null;
+  const duration = one(/property="v:runtime"[^>]*>([^<]+)</) || one(/片长:<\/span>\s*([^<]+)<br/);
+  const imdbId = one(/IMDb:<\/span>\s*(tt\d+)/);
+  const scoreStr = one(/property="v:average">([\d.]+)</);
+  return {
+    orig_name: orig,
+    countries: countries ? countries.split('/').map(s => s.trim()).join(' / ') : null,
+    genres, directors, actors,
+    duration: duration ? duration.trim() : null,
+    imdb_id: imdbId || null,
+    score: scoreStr ? parseFloat(scoreStr) : null,
+  };
+}
+
+/** fetchImdbRating — 从 IMDb 页面 JSON-LD 取评分 */
+export async function fetchImdbRating(imdbId) {
+  const html = await fetchText(`https://www.imdb.com/title/${imdbId}/`, {
+    Accept: 'text/html', 'Accept-Language': 'en-US,en;q=0.9',
+  });
+  if (!html) return null;
+  const m = html.match(/"aggregateRating"\s*:\s*\{[^}]*"ratingValue"\s*:\s*"?([\d.]+)"?/);
+  return m ? parseFloat(m[1]) : null;
+}
+
+/** parseRss — 极简 RSS/Atom 解析(零依赖) */
+export function parseRss(xml) {
+  if (!xml) return [];
+  const items = [];
+  const blocks = xml.match(/<item[\s>][\s\S]*?<\/item>/g) || xml.match(/<entry[\s>][\s\S]*?<\/entry>/g) || [];
+  const strip = (s) => s
+    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(n))
+    .replace(/&quot;/g, '"').replace(/&apos;|&#x27;/g, "'").replace(/&nbsp;/g, ' ')
+    .replace(/\s+/g, ' ').trim();
+  for (const b of blocks) {
+    const tag = (t) => { const m = b.match(new RegExp(`<${t}[^>]*>([\\s\\S]*?)<\\/${t}>`)); return m ? strip(m[1]) : null; };
+    let link = tag('link');
+    if (!link) { const m = b.match(/<link[^>]*href="([^"]+)"/); link = m ? m[1] : null; }
+    const title = tag('title');
+    if (!title || !link) continue;
+    const pub = tag('pubDate') || tag('published') || tag('dc:date') || tag('updated');
+    let summary = tag('description') || tag('summary') || tag('content:encoded') || '';
+    if (summary.length > 280) summary = summary.slice(0, 277) + '…';
+    items.push({ title, url: link, published_at: pub ? new Date(pub).toISOString() : null, summary: summary || null });
+  }
+  return items;
+}
+
+/** parseBomIntl — 解析 BOM /intl/ 列表:每市场最新周末的链接 */
+export function parseBomIntl(html) {
+  if (!html) return [];
+  const out = [];
+  const rowRe = /<tr>([\s\S]*?)<\/tr>/g;
+  let m;
+  while ((m = rowRe.exec(html))) {
+    const row = m[1];
+    const area = row.match(/href="\/weekend\/by-year\/\?area=([A-Z0-9]+)[^"]*"[^>]*>([^<]+)</);
+    const wk = row.match(/href="\/weekend\/(\d{4}W\d{2})\/\?area=[A-Z0-9]+[^"]*"[^>]*>([^<]+)</);
+    if (area && wk) out.push({ code: area[1], market: area[2].trim(), week: wk[1], weekendLabel: wk[2].trim() });
+  }
+  return out;
+}
+
+/** parseBomWeekendChart — 解析单市场周末榜,取前N名 */
+export function parseBomWeekendChart(html, topN = 3) {
+  if (!html) return [];
+  const out = [];
+  const rowRe = /<tr>([\s\S]*?)<\/tr>/g;
+  let m;
+  while ((m = rowRe.exec(html)) && out.length < topN) {
+    const row = m[1];
+    const title = row.match(/href="\/release\/[^"]+"[^>]*>([^<]+)</);
+    if (!title) continue;
+    const moneys = [...row.matchAll(/mojo-field-type-money[^>]*>([^<]+)</g)].map(x => x[1].trim());
+    const weeks = row.match(/mojo-field-type-positive_integer[^>]*>(\d+)</g);
+    const rankM = row.match(/^[\s\S]*?>(\d+)<\/td>/);
+    out.push({
+      rank: out.length + 1,
+      title: title[1].trim(),
+      weekend_gross: moneys[0] || null,
+      total_gross: moneys[moneys.length - 1] || null,
+      weeks: weeks ? parseInt((weeks[weeks.length-1].match(/(\d+)</) || [])[1], 10) || null : null,
+    });
+  }
+  return out;
+}
+
+/** doubanSuggest — 按片名搜豆瓣,返回最可能的匹配 {sid,url,title} */
+export async function doubanSuggest(q) {
+  const json = await doubanGet(
+    `https://movie.douban.com/j/subject_suggest?q=${encodeURIComponent(q)}`,
+    { json: true }
+  );
+  if (!Array.isArray(json)) return null;
+  const cand = json.find((x) => x && x.id && x.type !== 'celebrity' && !x.episode);
+  if (!cand) return null;
+  return { sid: String(cand.id), url: `https://movie.douban.com/subject/${cand.id}/`, title: cand.title || q };
 }

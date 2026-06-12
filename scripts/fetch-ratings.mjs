@@ -36,13 +36,15 @@ async function main() {
     process.exit(2);
   }
 
-  // 取保留片(含旧星级,用于算增量)
+  // 取追踪片:重点关注(每天必查,排前优先) + 保留(5天轮动)
   const keep = await selectFilms(
-    'status=eq.' + encodeURIComponent('保留') +
-    '&select=id,name,star1,star2,star3,star4,star5,comments,last_rating_update'
+    'status=in.(' + encodeURIComponent('重点关注,保留') + ')' +
+    '&select=id,name,status,star1,star2,star3,star4,star5,comments,last_rating_update'
   );
-  const today = keep.filter((f) => isTodaysGroup(f.id));
-  console.log(`[ratings] 保留 ${keep.length} 片,今日组 ${today.length} 片`);
+  const focus = keep.filter((f) => f.status === '重点关注');
+  const kept  = keep.filter((f) => f.status === '保留' && isTodaysGroup(f.id));
+  const today = [...focus, ...kept];
+  console.log(`[ratings] 重点关注 ${focus.length} 片(每日) + 保留今日组 ${kept.length} 片`);
 
   let rated = 0, blocked = false, skipped = 0;
   const TODAY = todayStr();

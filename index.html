@@ -3,49 +3,93 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>阿尔戈斯 · 豆瓣电影情报</title>
+  <title>阿尔戈斯 · 全球电影情报站</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <header class="topbar">
     <div class="title-row">
-      <h1>阿尔戈斯 · 豆瓣电影情报</h1>
+      <h1>阿尔戈斯 · 全球电影情报站</h1>
       <span id="updatedAt" class="updated">加载中…</span>
     </div>
 
-    <!-- 年份切换 -->
-    <div class="seg" id="yearSeg">
-      <button data-year="2026" class="active">2026</button>
-      <button data-year="2027">2027</button>
-      <button data-year="all">全部</button>
-    </div>
-
-    <!-- 状态标签(带计数) -->
-    <div class="seg" id="statusSeg">
-      <button data-status="待筛" class="active">待筛 <em id="c-待筛">0</em></button>
-      <button data-status="保留">保留 <em id="c-保留">0</em></button>
-      <button data-status="淘汰">淘汰 <em id="c-淘汰">0</em></button>
-      <button data-status="all">全部 <em id="c-all">0</em></button>
-    </div>
-
-    <!-- 筛选行 -->
-    <div class="filters">
-      <select id="countrySel"><option value="">全部国家</option></select>
-      <select id="sortSel">
-        <option value="default">默认排序</option>
-        <option value="score_desc">评分高→低</option>
-        <option value="has_score">有分优先</option>
-        <option value="d_star5_desc">今日新增5星</option>
-      </select>
-      <input id="searchBox" type="search" placeholder="搜索片名…" />
-    </div>
-
-    <div class="count-row">
-      <span id="resultCount">0 部</span>
+    <!-- 四大板块导航 -->
+    <div class="seg seg-main" id="sectionSeg">
+      <button data-section="douban" class="active">🎬 豆瓣情报</button>
+      <button data-section="boxoffice">💰 全球票房</button>
+      <button data-section="news">📰 媒体资讯</button>
+      <button data-section="festivals">🏆 电影节</button>
     </div>
   </header>
 
-  <main id="list" class="list"></main>
+  <!-- ============ 板块1:豆瓣情报 ============ -->
+  <section id="sec-douban" class="section">
+    <div class="subbar">
+      <div class="seg" id="yearSeg">
+        <button data-year="2026" class="active">2026</button>
+        <button data-year="2027">2027</button>
+        <button data-year="all">全部</button>
+      </div>
+      <div class="seg seg-wrap" id="statusSeg">
+        <button data-status="待筛" class="active">待筛 <em id="c-待筛">0</em></button>
+        <button data-status="重点关注">⭐重点关注 <em id="c-重点关注">0</em></button>
+        <button data-status="保留">保留 <em id="c-保留">0</em></button>
+        <button data-status="淘汰">🗑淘汰 <em id="c-淘汰">0</em></button>
+        <button data-status="all">全部 <em id="c-all">0</em></button>
+      </div>
+      <div class="filters">
+        <select id="countrySel"><option value="">全部国家</option></select>
+        <select id="sortSel">
+          <option value="default">默认排序</option>
+          <option value="score_desc">豆瓣分高→低</option>
+          <option value="imdb_desc">IMDb分高→低</option>
+          <option value="has_score">有分优先</option>
+          <option value="d_star5_desc">今日新增5星</option>
+          <option value="d_comments_desc">今日新增短评</option>
+        </select>
+        <input id="searchBox" type="search" placeholder="搜索片名/原名/导演…" />
+      </div>
+      <div class="count-row"><span id="resultCount">0 部</span></div>
+    </div>
+    <main id="list" class="list"></main>
+  </section>
+
+  <!-- ============ 板块2:全球票房 ============ -->
+  <section id="sec-boxoffice" class="section" hidden>
+    <div class="subbar">
+      <div class="filters">
+        <select id="boMarketSel"><option value="">全部市场</option></select>
+        <input id="boSearchBox" type="search" placeholder="搜索片名/市场…" />
+      </div>
+      <div class="count-row"><span id="boCount"></span></div>
+    </div>
+    <main id="boList" class="list"></main>
+  </section>
+
+  <!-- ============ 板块3:媒体资讯 ============ -->
+  <section id="sec-news" class="section" hidden>
+    <div class="subbar">
+      <div class="seg seg-wrap" id="newsSourceSeg"></div>
+      <div class="filters">
+        <input id="newsSearchBox" type="search" placeholder="搜索资讯标题…" />
+      </div>
+      <div class="count-row"><span id="newsCount"></span></div>
+    </div>
+    <main id="newsList" class="newslist"></main>
+  </section>
+
+  <!-- ============ 板块4:电影节 ============ -->
+  <section id="sec-festivals" class="section" hidden>
+    <div class="subbar">
+      <div class="seg" id="festTierSeg">
+        <button data-tier="all" class="active">全部</button>
+        <button data-tier="S">S级</button>
+        <button data-tier="A">A级</button>
+        <button data-tier="B">B级</button>
+      </div>
+    </div>
+    <main id="festList" class="festlist"></main>
+  </section>
 
   <div id="toast" class="toast"></div>
 

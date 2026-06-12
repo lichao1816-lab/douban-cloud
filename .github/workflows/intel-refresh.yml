@@ -1,0 +1,37 @@
+# ============================================================
+# intel-refresh — 云端每日抓:全球票房(BOM) + 媒体资讯(RSS) + 电影节底库。
+# 这三样不访问豆瓣主流程,机房 IP 可跑,不依赖 Mac mini。
+# (票房的豆瓣链接匹配在云端跳过,由 mini 的 run-daily 补全。)
+#
+# 前置:仓库 Settings → Secrets and variables → Actions 添加两个 Secret:
+#   SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY
+# ============================================================
+name: intel-refresh
+
+on:
+  schedule:
+    - cron: '30 1 * * *'   # 每天 UTC 01:30 = 北京时间 09:30
+  workflow_dispatch:        # 也可手动触发
+
+permissions:
+  contents: read
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      SKIP_DOUBAN_MATCH: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: 电影节底库(幂等)
+        run: node scripts/seed-festivals.mjs
+      - name: 全球票房
+        run: node scripts/fetch-boxoffice.mjs
+      - name: 媒体资讯
+        run: node scripts/fetch-news.mjs

@@ -30,14 +30,19 @@ async function main() {
 
   const roster = await run('fetch-roster.mjs');
   const ratings = await run('fetch-ratings.mjs');
+  const enrich = await run('enrich-details.mjs');
+  const boxoffice = await run('fetch-boxoffice.mjs');
+  const news = await run('fetch-news.mjs');
 
-  const blocked = roster.blocked || ratings.blocked;
+  const blocked = roster.blocked || ratings.blocked || enrich.blocked;
   const hadError =
-    (roster.code !== 0 && !roster.blocked) || (ratings.code !== 0 && !ratings.blocked);
+    (roster.code !== 0 && !roster.blocked) || (ratings.code !== 0 && !ratings.blocked) ||
+    (enrich.code !== 0 && !enrich.blocked) || boxoffice.code !== 0 || news.code !== 0;
 
+  const st = (r) => (r.code === 0 ? 'ok' : r.blocked ? 'blocked' : 'error');
   const summary =
-    `roster=${roster.code === 0 ? 'ok' : roster.blocked ? 'blocked' : 'error'}, ` +
-    `ratings=${ratings.code === 0 ? 'ok' : ratings.blocked ? 'blocked' : 'error'}`;
+    `roster=${st(roster)}, ratings=${st(ratings)}, enrich=${st(enrich)}, ` +
+    `boxoffice=${st(boxoffice)}, news=${st(news)}`;
 
   await insertRun({
     kind: 'daily',
@@ -51,6 +56,9 @@ async function main() {
   console.log('\n========== 今日汇总 ==========');
   console.log('片单(roster):', roster.code === 0 ? '完成' : roster.blocked ? '被限速' : '出错');
   console.log('评分(ratings):', ratings.code === 0 ? '完成' : ratings.blocked ? '被限速' : '出错');
+  console.log('详情增强(enrich):', enrich.code === 0 ? '完成' : enrich.blocked ? '被限速' : '出错');
+  console.log('全球票房(boxoffice):', boxoffice.code === 0 ? '完成' : '出错');
+  console.log('媒体资讯(news):', news.code === 0 ? '完成' : '出错');
   console.log('是否被豆瓣限速:', blocked ? '是 ⚠️(建议检查 cookie / 换住宅IP / 配代理)' : '否');
   console.log('================================');
 

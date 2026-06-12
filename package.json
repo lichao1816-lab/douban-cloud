@@ -10,6 +10,10 @@
   "scripts": {
     "seed": "node scripts/seed-supabase.mjs",
     "backfill": "node scripts/backfill.mjs",
+    "enrich": "node scripts/enrich-details.mjs",
+    "boxoffice": "node scripts/fetch-boxoffice.mjs",
+    "news": "node scripts/fetch-news.mjs",
+    "festivals": "node scripts/seed-festivals.mjs",
     "roster": "node scripts/fetch-roster.mjs",
     "ratings": "node scripts/fetch-ratings.mjs",
     "daily": "node scripts/run-daily.mjs",
