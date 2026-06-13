@@ -31,19 +31,23 @@ async function main() {
   const roster = await run('fetch-roster.mjs');
   const ratings = await run('fetch-ratings.mjs');
   const enrich = await run('enrich-details.mjs');
+  const festfilms = await run('seed-festival-films.mjs');     // 节展片单:把 data/festival_films_2026.json 灌入(在线,不碰豆瓣)
+  const festmatch = await run('match-festival-douban.mjs');   // 节展片豆瓣匹配(走豆瓣,故放在 mini 的豆瓣步骤组里)
   const boxoffice = await run('fetch-boxoffice.mjs');
   const bofilms = await run('enrich-bofilms.mjs');
   const news = await run('fetch-news.mjs');
 
-  const blocked = roster.blocked || ratings.blocked || enrich.blocked || bofilms.blocked;
+  const blocked = roster.blocked || ratings.blocked || enrich.blocked || bofilms.blocked || festmatch.blocked;
   const hadError =
     (roster.code !== 0 && !roster.blocked) || (ratings.code !== 0 && !ratings.blocked) ||
     (enrich.code !== 0 && !enrich.blocked) || boxoffice.code !== 0 ||
-    (bofilms.code !== 0 && !bofilms.blocked) || news.code !== 0;
+    (bofilms.code !== 0 && !bofilms.blocked) || news.code !== 0 ||
+    festfilms.code !== 0 || (festmatch.code !== 0 && !festmatch.blocked);
 
   const st = (r) => (r.code === 0 ? 'ok' : r.blocked ? 'blocked' : 'error');
   const summary =
     `roster=${st(roster)}, ratings=${st(ratings)}, enrich=${st(enrich)}, ` +
+    `festfilms=${st(festfilms)}, festmatch=${st(festmatch)}, ` +
     `boxoffice=${st(boxoffice)}, bofilms=${st(bofilms)}, news=${st(news)}`;
 
   await insertRun({
@@ -59,6 +63,8 @@ async function main() {
   console.log('片单(roster):', roster.code === 0 ? '完成' : roster.blocked ? '被限速' : '出错');
   console.log('评分(ratings):', ratings.code === 0 ? '完成' : ratings.blocked ? '被限速' : '出错');
   console.log('详情增强(enrich):', enrich.code === 0 ? '完成' : enrich.blocked ? '被限速' : '出错');
+  console.log('节展片单(festfilms):', festfilms.code === 0 ? '完成' : '出错');
+  console.log('节展豆瓣匹配(festmatch):', festmatch.code === 0 ? '完成' : festmatch.blocked ? '被限速' : '出错');
   console.log('全球票房(boxoffice):', boxoffice.code === 0 ? '完成' : '出错');
   console.log('票房片详情(bofilms):', bofilms.code === 0 ? '完成' : bofilms.blocked ? '被限速' : '出错');
   console.log('媒体资讯(news):', news.code === 0 ? '完成' : '出错');

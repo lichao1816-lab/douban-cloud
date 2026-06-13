@@ -16,6 +16,7 @@
     "news": "node scripts/fetch-news.mjs",
     "festivals": "node scripts/seed-festivals.mjs",
     "festfilms": "node scripts/seed-festival-films.mjs",
+    "festmatch": "node scripts/match-festival-douban.mjs",
     "roster": "node scripts/fetch-roster.mjs",
     "ratings": "node scripts/fetch-ratings.mjs",
     "daily": "node scripts/run-daily.mjs",

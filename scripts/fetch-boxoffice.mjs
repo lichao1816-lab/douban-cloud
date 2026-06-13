@@ -37,6 +37,7 @@ async function main() {
   let rows = 0, marketsDone = 0;
 
   for (const mk of markets) {
+   try {
     const marketCn = MARKET_CN[mk.market] || mk.market;
     const chartHtml = await fetchText(`${BOM}/weekend/${mk.week}/?area=${mk.code}`);
     await pace(...BOM_PACE);
@@ -48,7 +49,7 @@ async function main() {
       let match = matchCache.get(t.title);
       if (match === undefined) {
         // 云端(GitHub Actions)跑时跳过豆瓣匹配(机房IP会被挡),由 mini 跑时补全
-        match = process.env.SKIP_DOUBAN_MATCH === '1' ? null : await doubanSuggest(t.title);
+        match = process.env.SKIP_DOUBAN_MATCH === '1' ? null : await doubanSuggest(t.title).catch(() => null);
         if (process.env.SKIP_DOUBAN_MATCH !== '1') await pace(...MATCH_PACE);
         matchCache.set(t.title, match);
       }
@@ -72,6 +73,10 @@ async function main() {
     rows += entries.length;
     marketsDone++;
     if (marketsDone % 10 === 0) console.log(`[boxoffice] 已完成 ${marketsDone}/${markets.length} 市场`);
+   } catch (e) {
+     // 单个市场出错(网络抖动/页面异常)只跳过,不拖垮整步
+     console.warn(`[boxoffice] 市场 ${mk.code} 跳过(出错): ${String(e).slice(0, 80)}`);
+   }
   }
 
   await insertRun({

@@ -34,33 +34,38 @@ async function main() {
 
   let done = 0, blocked = false;
   for (const f of batch) {
-    const html = await doubanSubjectHtml(f.id);
-    await pace(...DETAIL_PACE);
-    if (html == null) {
-      if (!(await sentinelOk())) { blocked = true; console.warn('[enrich] 被限速,停止'); break; }
-      continue;
+    try {
+      const html = await doubanSubjectHtml(f.id);
+      await pace(...DETAIL_PACE);
+      if (html == null) {
+        if (!(await sentinelOk())) { blocked = true; console.warn('[enrich] 被限速,停止'); break; }
+        continue;
+      }
+      const d = parseSubjectDetail(html, f.name);
+      if (!d) continue;
+
+      const patch = {
+        orig_name: d.orig_name, countries: d.countries, genres: d.genres,
+        directors: d.directors, actors: d.actors, duration: d.duration,
+        imdb_id: d.imdb_id,
+        detail_updated_at: new Date().toISOString(),
+      };
+      if (d.score != null) patch.score = d.score;
+      if (d.countries) patch.country = d.countries.split(' / ')[0]; // 顺手把第一出品国标准化
+
+      if (d.imdb_id) {
+        const ir = await fetchImdbRating(d.imdb_id).catch(() => null);
+        await pace(600, 900);
+        if (ir != null) patch.imdb_rating = ir;
+      }
+
+      await updateFilm(f.id, patch);
+      done++;
+      if (done % 10 === 0) console.log(`[enrich] 已增强 ${done}/${batch.length}`);
+    } catch (e) {
+      // 单部出错(网络抖动/解析异常)只跳过,不拖垮整步
+      console.warn(`[enrich] ${f.id} 跳过(出错): ${String(e).slice(0, 80)}`);
     }
-    const d = parseSubjectDetail(html, f.name);
-    if (!d) continue;
-
-    const patch = {
-      orig_name: d.orig_name, countries: d.countries, genres: d.genres,
-      directors: d.directors, actors: d.actors, duration: d.duration,
-      imdb_id: d.imdb_id,
-      detail_updated_at: new Date().toISOString(),
-    };
-    if (d.score != null) patch.score = d.score;
-    if (d.countries) patch.country = d.countries.split(' / ')[0]; // 顺手把第一出品国标准化
-
-    if (d.imdb_id) {
-      const ir = await fetchImdbRating(d.imdb_id);
-      await pace(600, 900);
-      if (ir != null) patch.imdb_rating = ir;
-    }
-
-    await updateFilm(f.id, patch);
-    done++;
-    if (done % 10 === 0) console.log(`[enrich] 已增强 ${done}/${batch.length}`);
   }
 
   await insertRun({
