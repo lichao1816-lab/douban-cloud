@@ -25,8 +25,35 @@ function run(script) {
   });
 }
 
+// 自动同步代码:每天抓取前先 git pull --ff-only,让 mini 用上最新脚本。
+// 带 120s 超时,失败/超时只跳过(不阻塞当天抓取)。注意:本次拉到的新版
+// run-daily.mjs 要到"下一次"运行才生效(当前进程已载入内存)。
+function gitPull() {
+  const root = join(__dirname, '..');
+  return new Promise((resolve) => {
+    console.log('\n========== 同步代码 (git pull) ==========');
+    let done = false;
+    const child = spawn('git', ['-C', root, 'pull', '--ff-only'], { stdio: 'inherit' });
+    const timer = setTimeout(() => {
+      if (!done) { console.warn('[git] pull 超时(120s),跳过,用现有代码继续'); child.kill('SIGKILL'); }
+    }, 120000);
+    child.on('exit', (code) => {
+      done = true; clearTimeout(timer);
+      console.log(code === 0 ? '[git] 代码已是最新/已同步 ✅' : `[git] pull 未成功(code ${code}),跳过,用现有代码继续`);
+      resolve();
+    });
+    child.on('error', (e) => {
+      done = true; clearTimeout(timer);
+      console.warn(`[git] 无法执行 git(${String(e).slice(0, 60)}),跳过`);
+      resolve();
+    });
+  });
+}
+
 async function main() {
   const startedAt = new Date().toISOString();
+
+  await gitPull();
 
   const roster = await run('fetch-roster.mjs');
   const ratings = await run('fetch-ratings.mjs');
