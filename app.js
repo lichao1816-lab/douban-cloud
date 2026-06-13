@@ -24,6 +24,7 @@
   let ALL = [];                 // 豆瓣片库(全量缓存)
   let FILM_BY_ID = new Map();
   let BO = [];                  // 票房条目
+  let BO_FILMS = new Map();     // 票房片详情缓存(bo_films 表, sid -> row)
   let NEWS = [];
   let FESTS = [];
   let FEST_FILMS = [];
@@ -235,6 +236,11 @@
     const latest = new Map(); // market -> period
     for (const r of rows) if (!latest.has(r.market)) latest.set(r.market, r.period);
     BO = rows.filter((r) => latest.get(r.market) === r.period);
+    // 票房片详情缓存(表可能尚未创建,失败不影响主流程)
+    try {
+      const bf = await fetchAll('bo_films?select=*', 1000, 3000);
+      BO_FILMS = new Map(bf.map((x) => [x.sid, x]));
+    } catch { BO_FILMS = new Map(); }
   }
 
   function rebuildBoMarkets() {
@@ -245,19 +251,36 @@
 
   function boCardHtml(r) {
     const film = r.douban_sid ? FILM_BY_ID.get(r.douban_sid) : null;
+    const bf = !film && r.douban_sid ? BO_FILMS.get(r.douban_sid) : null;
+    const d = film || bf; // 详情来源:筛片库优先,其次票房片缓存
     const link = r.douban_url
       ? `<a class="btn-douban" href="${r.douban_url}" target="_blank" rel="noopener">豆瓣↗</a>`
       : `<a class="btn-douban dim" href="https://www.douban.com/search?cat=1002&q=${encodeURIComponent(r.title)}" target="_blank" rel="noopener">搜豆瓣↗</a>`;
     const btns = film ? actionBtns(film) : '';
     const badge = film ? `<span class="badge s-${film.status}">${film.status === '重点关注' ? '⭐重点关注' : film.status}</span>` : '';
+    const cnName = d && d.name && d.name !== r.title ? `<p class="film-orig">${escapeHtml(d.name)}</p>` : '';
+    const detailMeta = d ? [
+      d.countries ? escapeHtml(d.countries) : null,
+      d.duration ? escapeHtml(d.duration) : null,
+      d.genres ? escapeHtml(d.genres) : null,
+    ].filter(Boolean).join(' · ') : '';
+    const crew = d && (d.directors || d.actors)
+      ? `<div class="film-crew">${d.directors ? '导演: ' + escapeHtml(d.directors) : ''}${d.directors && d.actors ? ' ｜ ' : ''}${d.actors ? '主演: ' + escapeHtml(d.actors) : ''}</div>`
+      : '';
+    const scoreHtml = d && d.score != null ? `<div class="score">${d.score}</div>` : '';
+    const imdbHtml = d && d.imdb_rating != null ? `<div class="imdb">IMDb ${d.imdb_rating}</div>` : '';
     return `
       <div class="card bo-card" data-id="${film ? film.id : ''}">
         <div class="card-head">
           <div class="card-titles">
             <p class="film-name"><span class="bo-rank">#${r.rank}</span>${escapeHtml(r.title)}${badge}</p>
+            ${cnName}
             <div class="film-meta">${escapeHtml(r.market)} · ${escapeHtml(r.period)}${r.weeks ? ' · 第' + r.weeks + '周' : ''}</div>
+            ${detailMeta ? `<div class="film-meta">${detailMeta}</div>` : ''}
+            ${crew}
           </div>
           <div class="card-scores">
+            ${scoreHtml}${imdbHtml}
             <div class="bo-gross">${escapeHtml(r.weekend_gross || '—')}</div>
             <div class="bo-total">累计 ${escapeHtml(r.total_gross || '—')}</div>
           </div>
@@ -295,15 +318,24 @@
   // 板块3:媒体资讯
   // ============================================================
   async function loadNews() {
+    // select=* 以兼容 title_cn/summary_cn 列尚未创建的情况
     NEWS = await fetchAll(
-      'news_items?select=source,title,url,summary,published_at,fetched_at&order=published_at.desc.nullslast&limit=500',
+      'news_items?select=*&order=published_at.desc.nullslast&limit=500',
       500, 500);
+  }
+
+  // 节展片单情报关键词(标题命中即认为是"入围/片单/获奖"类消息)
+  const FEST_NEWS_RE = /lineup|line-up|selection|in competition|competition titles|slate|unveil|announce[sd]? .*(film|title)|world premiere|festival .*(add|reveal)|入围|片单|主竞赛|展映|公布.*名单|venice|toronto|busan|locarno|san sebasti|karlovy|tokyo film|sitges|tallinn|金马|釜山|威尼斯|多伦多|洛迦诺|东京电影节|圣塞巴斯蒂安|卡罗维发利/i;
+
+  function isFestNews(n) {
+    return FEST_NEWS_RE.test(n.title || '') || FEST_NEWS_RE.test(n.title_cn || '');
   }
 
   function rebuildNewsSources() {
     const ss = [...new Set(NEWS.map((n) => n.source))];
     $('#newsSourceSeg').innerHTML =
       `<button data-source="" class="${state.newsSource ? '' : 'active'}">全部</button>` +
+      `<button data-source="__fest__" class="${state.newsSource === '__fest__' ? 'active' : ''}">🎯节展雷达</button>` +
       ss.map((s) => `<button data-source="${escapeHtml(s)}" class="${state.newsSource === s ? 'active' : ''}">${escapeHtml(s)}</button>`).join('');
   }
 
@@ -318,22 +350,39 @@
     return new Date(iso).toLocaleDateString('zh-CN');
   }
 
+  function newsItemHtml(n) {
+    const fest = isFestNews(n);
+    // 中文优先:有译文显示译文为主标题,原文变小字;无译文(中文源/未译)直接显示原文
+    const mainTitle = n.title_cn || n.title;
+    const subTitle = n.title_cn ? n.title : '';
+    const summary = n.summary_cn || n.summary;
+    return `
+      <a class="news-item${fest ? ' news-fest' : ''}" href="${n.url}" target="_blank" rel="noopener">
+        <div class="news-top"><span class="news-src">${escapeHtml(n.source)}</span>${fest ? '<span class="news-fest-tag">🎯节展</span>' : ''}<span class="news-time">${timeAgo(n.published_at)}</span></div>
+        <p class="news-title">${escapeHtml(mainTitle)}</p>
+        ${subTitle ? `<p class="news-title-en">${escapeHtml(subTitle)}</p>` : ''}
+        ${summary ? `<p class="news-summary">${escapeHtml(summary)}</p>` : ''}
+      </a>`;
+  }
+
   function renderNews() {
     let rows = NEWS;
-    if (state.newsSource) rows = rows.filter((n) => n.source === state.newsSource);
+    if (state.newsSource === '__fest__') rows = rows.filter(isFestNews);
+    else if (state.newsSource) rows = rows.filter((n) => n.source === state.newsSource);
     if (state.newsQ) {
       const q = state.newsQ.toLowerCase();
-      rows = rows.filter((n) => n.title.toLowerCase().includes(q) || (n.summary || '').toLowerCase().includes(q));
+      rows = rows.filter((n) =>
+        (n.title || '').toLowerCase().includes(q) ||
+        (n.title_cn || '').toLowerCase().includes(q) ||
+        (n.summary || '').toLowerCase().includes(q) ||
+        (n.summary_cn || '').toLowerCase().includes(q));
     }
     $('#newsCount').textContent = rows.length ? rows.length + ' 条' : '';
     const el = $('#newsList');
     if (!rows.length) { el.innerHTML = '<div class="empty">暂无资讯(等每日抓取首跑后出现)</div>'; return; }
-    el.innerHTML = rows.slice(0, 300).map((n) => `
-      <a class="news-item" href="${n.url}" target="_blank" rel="noopener">
-        <div class="news-top"><span class="news-src">${escapeHtml(n.source)}</span><span class="news-time">${timeAgo(n.published_at)}</span></div>
-        <p class="news-title">${escapeHtml(n.title)}</p>
-        ${n.summary ? `<p class="news-summary">${escapeHtml(n.summary)}</p>` : ''}
-      </a>`).join('');
+    const tip = NEWS.length && !NEWS.some((n) => n.title_cn)
+      ? '<div class="empty" style="padding:8px">💡 中文翻译列未启用:请先在 Supabase 跑 upgrade-v3.sql,再跑一次 npm run news</div>' : '';
+    el.innerHTML = tip + rows.slice(0, 300).map(newsItemHtml).join('');
   }
 
   // ============================================================
@@ -367,6 +416,7 @@
             <p class="film-orig">${escapeHtml(f.name)}</p>
             <div class="film-meta">${escapeHtml([f.country, f.city].filter(Boolean).join(' · '))} · 常规档期: ${escapeHtml(f.month_window || '—')}</div>
             <div class="film-meta">2026届: ${escapeHtml(f.edition_2026 || '待公布')}</div>
+            ${f.lineup_announce ? `<div class="film-meta la">📅 片单节点: ${escapeHtml(f.lineup_announce)}</div>` : ''}
             ${f.notes ? `<div class="fest-notes">${escapeHtml(f.notes)}</div>` : ''}
           </div>
           <div class="card-scores"><div class="lineup ${lineupCls}">片单${escapeHtml(f.lineup_status)}</div></div>
@@ -376,12 +426,23 @@
       </div>`;
   }
 
+  // 📡 雷达:接下来要盯的片单公布节点(lineup_announce 以★开头的条目)
+  function radarHtml() {
+    const watch = FESTS.filter((f) => (f.lineup_announce || '').startsWith('★'));
+    if (!watch.length) return '';
+    const items = watch.map((f) =>
+      `<div class="radar-item"><span class="tier tier-${f.tier}">${f.tier}</span><strong>${escapeHtml(f.name_cn)}</strong> — ${escapeHtml(f.lineup_announce.slice(1))}</div>`
+    ).join('');
+    return `<div class="radar"><div class="radar-head">📡 情报雷达 · 接下来要第一时间盯的片单节点</div>${items}
+      <div class="radar-tip">片单一公布,资讯板块的"🎯节展雷达"筛选会第一时间出现相关报道;同时让 Claude 当天回填入围名单。</div></div>`;
+  }
+
   function renderFestivals() {
     let rows = FESTS;
     if (state.festTier !== 'all') rows = rows.filter((f) => f.tier === state.festTier);
     const el = $('#festList');
     if (!rows.length) { el.innerHTML = '<div class="empty">暂无电影节数据(先运行 npm run festivals 灌入底库)</div>'; return; }
-    let html = '';
+    let html = state.festTier === 'all' ? radarHtml() : '';
     for (const tier of ['S', 'A', 'B']) {
       const group = rows.filter((f) => f.tier === tier);
       if (!group.length) continue;

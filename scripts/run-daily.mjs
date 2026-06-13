@@ -32,17 +32,19 @@ async function main() {
   const ratings = await run('fetch-ratings.mjs');
   const enrich = await run('enrich-details.mjs');
   const boxoffice = await run('fetch-boxoffice.mjs');
+  const bofilms = await run('enrich-bofilms.mjs');
   const news = await run('fetch-news.mjs');
 
-  const blocked = roster.blocked || ratings.blocked || enrich.blocked;
+  const blocked = roster.blocked || ratings.blocked || enrich.blocked || bofilms.blocked;
   const hadError =
     (roster.code !== 0 && !roster.blocked) || (ratings.code !== 0 && !ratings.blocked) ||
-    (enrich.code !== 0 && !enrich.blocked) || boxoffice.code !== 0 || news.code !== 0;
+    (enrich.code !== 0 && !enrich.blocked) || boxoffice.code !== 0 ||
+    (bofilms.code !== 0 && !bofilms.blocked) || news.code !== 0;
 
   const st = (r) => (r.code === 0 ? 'ok' : r.blocked ? 'blocked' : 'error');
   const summary =
     `roster=${st(roster)}, ratings=${st(ratings)}, enrich=${st(enrich)}, ` +
-    `boxoffice=${st(boxoffice)}, news=${st(news)}`;
+    `boxoffice=${st(boxoffice)}, bofilms=${st(bofilms)}, news=${st(news)}`;
 
   await insertRun({
     kind: 'daily',
@@ -58,6 +60,7 @@ async function main() {
   console.log('评分(ratings):', ratings.code === 0 ? '完成' : ratings.blocked ? '被限速' : '出错');
   console.log('详情增强(enrich):', enrich.code === 0 ? '完成' : enrich.blocked ? '被限速' : '出错');
   console.log('全球票房(boxoffice):', boxoffice.code === 0 ? '完成' : '出错');
+  console.log('票房片详情(bofilms):', bofilms.code === 0 ? '完成' : bofilms.blocked ? '被限速' : '出错');
   console.log('媒体资讯(news):', news.code === 0 ? '完成' : '出错');
   console.log('是否被豆瓣限速:', blocked ? '是 ⚠️(建议检查 cookie / 换住宅IP / 配代理)' : '否');
   console.log('================================');

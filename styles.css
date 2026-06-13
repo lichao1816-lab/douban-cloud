@@ -126,3 +126,14 @@ h1 { font-size: 17px; font-weight: 700; }
   .list .empty, .list .group-title { grid-column: 1 / -1; }
   h1 { font-size: 19px; }
 }
+
+/* ===== v3 增量样式(2026-06-12):资讯中文化/节展雷达/票房详情 ===== */
+.news-title-en { margin: 2px 0 0; font-size: 12px; color: #8a94a6; }
+.news-fest { border-left: 3px solid #e8590c; }
+.news-fest-tag { margin-left: 8px; font-size: 11px; color: #e8590c; font-weight: 600; }
+.radar { background: linear-gradient(135deg,#fff7ed,#fff); border: 1px solid #fdba74; border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; }
+.radar-head { font-weight: 700; margin-bottom: 8px; color: #9a3412; }
+.radar-item { padding: 4px 0; font-size: 13.5px; color: #333; }
+.radar-item .tier { margin-right: 6px; }
+.radar-tip { margin-top: 8px; font-size: 12px; color: #9a3412; opacity: .8; }
+.film-meta.la { color: #b45309; font-weight: 600; }
