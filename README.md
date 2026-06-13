@@ -1,111 +1,109 @@
-# 阿尔戈斯计划 · 豆瓣电影情报云端
+# 阿尔戈斯 · 全球电影情报站（douban-cloud）
 
-一套可部署的豆瓣电影情报系统:**家里的 Mac mini 每天定时抓豆瓣 → 存进 Supabase → 任何手机/电脑打开静态网页查看与筛选。**
+面向**电影版权采购**的一站式情报系统：每天自动抓取全球电影数据，存进云端数据库，用一个网页随时随地查看。核心诉求是**第一时间拿到新片信息**（豆瓣新片、票房榜、行业资讯、电影节片单），而非事后做汇总报告。
 
-## 架构
+- **查看端（手机/电脑随时看）**：https://lichao1816-lab.github.io/douban-cloud/
+- **抓取端**：家里的 Mac mini 每天定时跑，住宅 IP 抓豆瓣不易被封。
+- **数据库**：Supabase（云端 Postgres）。抓取端写入、查看端读取，互不依赖。
 
+---
+
+## 它能做什么（四大板块）
+
+1. **🎬 豆瓣情报**：每日抓取豆瓣 2026/2027 新片，记录评分、5 星人数、短评数的逐日增量，支持按状态（待筛/⭐重点关注/保留/淘汰）、国家、评分筛选；保留/淘汰可在网页上直接点，实时写回云端。
+2. **💰 全球票房**：抓 Box Office Mojo 约 80+ 个市场的最新周末票房 Top3，自动匹配豆瓣条目并补全豆瓣评分、IMDb 评分、片长、类型、导演主演。
+3. **📰 媒体资讯**：抓一线行业媒体 RSS（Variety / Deadline / THR / IndieWire / TheWrap / ScreenDaily / Cineuropa / FilmNewEurope）+ 中文源（界面文娱 / 时光网），**英文自动机器翻译成中文**；带「🎯节展雷达」过滤，片单/入围/获奖类消息一键聚焦。
+4. **🏆 电影节**：30 个全球重点电影节/奖项/市场的底库，含 2026 届期、**片单公布时间前瞻**（情报雷达），以及已闭幕节展的入围/获奖片单（戛纳/柏林/奥斯卡等已回填）。
+
+---
+
+## 启动方式
+
+### 本地预览查看端（可选，调试用）
 ```
-┌─────────────────┐      每天定时(launchd)        ┌──────────────────┐
-│  Mac mini(家)  │  ───────────────────────────▶  │   豆瓣 movie.douban │
-│  住宅 IP         │   Node 原生 fetch + cookie      └──────────────────┘
-│  scripts/run-daily│                                          │ HTML/JSON
-└────────┬─────────┘                                          ▼
-         │ Supabase REST (service_role 写)         解析 star1..5 / 短评 / 总分
-         ▼
-┌─────────────────────────────┐
-│  Supabase (Postgres)         │   表: douban_films / douban_runs
-│  RLS: anon 只读 + 受限写状态  │
-└────────┬────────────────────┘
-         │ Supabase REST (anon key 读 + 受限写)
-         ▼
-┌─────────────────────────────┐
-│  静态查看端 index/app/styles  │  → Cloudflare Pages / Vercel / GitHub Pages
-│  手机优先,筛选/排序/保留淘汰  │
-└─────────────────────────────┘
+npm run serve
 ```
+查看端是纯静态页面（index.html + app.js + styles.css + config.js），也可直接部署到任意静态托管。
 
-## 用途
-- **新片发现**:每天按国家+年份(2026/2027)拉豆瓣近期热度片单,自动去重、剔除剧集/综艺/短片,新片入库标记「待筛」。
-- **5 星轮动追踪**:对「保留」的片子分 5 组轮流抓详情页,记录每档星级绝对人数、短评数,算出**今日新增 5 星 / 今日新增短评**,看口碑爬升势头。
-- **随时随地筛选**:手机打开网页,按年份/状态/国家/评分筛选排序,一键「保留 / 淘汰 / 恢复」写回云端。
-
-## 目录结构
+### 手动跑一次抓取（需先配好 .env）
 ```
-douban-cloud/
-├── index.html  app.js  styles.css     # 静态查看端(部署到 Pages)
-├── config.js                          # 由 .env 生成(git 忽略,含 anon key)
-├── data/seed.json                     # 初始片单(已就位)
-├── supabase/schema.sql                # 建表 + RLS,在 Supabase SQL Editor 执行
-├── scripts/
-│   ├── lib.mjs                        # 公共库:豆瓣请求/解析/限速哨兵/Supabase REST
-│   ├── seed-supabase.mjs              # 灌初始数据(幂等)
-│   ├── fetch-roster.mjs              # 每日新片
-│   ├── fetch-ratings.mjs            # 5星轮动追踪
-│   ├── run-daily.mjs                 # 编排(launchd/Actions 调用)
-│   ├── generate-config.mjs           # 从 .env 生成 config.js
-│   └── serve.mjs                     # 本地静态预览
-├── launchd/com.argos.douban.daily.plist  # Mac mini 定时任务模板
-├── setup-macmini.sh                  # Mac mini 一键部署
-└── .github/workflows/               # 备用:Actions 抓取 + Pages 部署
+npm run daily        # 跑完整一轮：片单→评分→详情→票房→票房片详情→资讯+翻译
+```
+也可单独跑某一步：
+```
+npm run roster       # 抓豆瓣新片片单
+npm run ratings      # 更新评分/5星/短评(5天一轮动)
+npm run enrich       # 补豆瓣详情(国家/类型/导演/IMDb)
+npm run boxoffice    # 抓全球票房榜
+npm run bofilms      # 补票房榜影片的豆瓣/IMDb详情
+npm run news         # 抓行业资讯 + 机器翻译
+npm run festivals    # 灌/更新电影节底库(data/festivals.json)
+npm run festfilms    # 灌/更新电影节入围片单(data/festival_films_2026.json)
+npm run build:config # 由 .env 生成查看端 config.js
 ```
 
-## 快速开始
-
-### 1. 建数据库
-在 Supabase 控制台 → SQL Editor,整段执行 `supabase/schema.sql`。
-
-### 2. 配环境变量
-```bash
-cp .env.example .env
-# 编辑 .env,填入 Supabase 三个 key + 豆瓣 cookie(取法见 SETUP-macmini.md)
+### 部署到 Mac mini（每天自动跑）
+见 **`mac-mini保姆级步骤.md`**（小白版）或 **`SETUP-macmini.md`**。一句话流程：
 ```
-Supabase 的 key 在:控制台 → Project Settings → API。
-
-### 3. 灌初始数据
-```bash
-npm run seed     # 读 data/seed.json,upsert 进 douban_films
+git clone → 放 .env → bash setup-macmini.sh 09:00 → 防睡眠
 ```
+立即手动触发一次：`launchctl start com.argos.douban.daily`
+看实时日志：`tail -f logs/daily.out.log`
 
-### 4. 本地预览查看端
-```bash
-npm run serve    # 自动生成 config.js,开 http://localhost:8080
+---
+
+## 部署架构
+
 ```
-
-### 5. 手动跑一次抓取(可选)
-```bash
-npm run roster   # 拉新片
-npm run ratings  # 抓评分
-npm run daily    # 两者一起(定时任务跑的就是这个)
+ Mac mini(住宅IP)                Supabase(云端Postgres)         GitHub Pages(静态查看端)
+ ┌───────────────┐  service_role  ┌──────────────────┐  anon key  ┌──────────────────┐
+ │ launchd 每天   │ ─────写入────▶ │ douban_films     │ ◀───只读── │ index.html       │
+ │ run-daily.mjs  │                │ boxoffice_entries│            │ app.js (原生JS)  │
+ │ (Node 22+)     │                │ news_items       │  受限写★    │                  │
+ └───────────────┘                │ festivals/_films │ ◀──status── │ 手机/电脑浏览器  │
+                                   │ bo_films         │            └──────────────────┘
+                                   └──────────────────┘
+ ★查看端用 anon key 仅能改 douban_films 的 status/note 两列(用于点保留/淘汰)。
 ```
 
-## 三种部署
+- **抓取与查看完全解耦**：抓取端挂了，查看端照常读历史数据；查看端不依赖任何后端服务器。
+- **数据库是唯一真相源**：换任何一台机器跑抓取，连同一个 Supabase 即可，无需重新建表/灌数据。
 
-### A. 抓取端 → Mac mini(★推荐)
-住宅 IP,不易被封。详见 **SETUP-macmini.md**(面向非开发者的图文步骤)。一句话:
-```bash
-bash setup-macmini.sh   # 检查环境、生成 config、装 launchd 定时任务
-```
+---
 
-### B. 抓取端 → GitHub Actions(备用)
-`.github/workflows/douban-refresh.yml`,每天 cron 跑。
-**⚠️ 机房 IP 抓豆瓣大概率被封**,必须在仓库 Secrets 里配 `DOUBAN_PROXY`(住宅代理),否则基本无效。仅作 Mac mini 离线时的备份。
+## 依赖项
 
-### C. 查看端 → 静态托管(任选其一)
-- **GitHub Pages**:`.github/workflows/deploy-pages.yml` 已就绪,Settings → Pages → Source 选 "GitHub Actions",配 `SUPABASE_URL` / `SUPABASE_ANON_KEY` 两个 Secret。
-- **Cloudflare Pages / Vercel**:直接连仓库,Build command 留空或 `node scripts/generate-config.mjs`(把 `SUPABASE_URL`/`SUPABASE_ANON_KEY` 设为环境变量),输出目录为根目录。
+- **运行环境**：Node.js **22+**（mini 实测 v24 亦可）。
+- **第三方 npm 包**：**零依赖**。全部用 Node 原生 `fetch` + 内置模块，`package.json` 的 dependencies 为空，mini 上无需 `npm install`。
+- **外部服务**：
+  - Supabase（免费版够用）——数据库。
+  - 豆瓣 cookie——抓豆瓣需要登录态（几周~几月过期，需重取）。
+  - 机器翻译：微软 Edge 翻译接口（免 key）为主，Google gtx 接口为备，均无需注册。
+  - 数据源：Box Office Mojo（公开）、各媒体 RSS（公开）。
+- **`.env` 必填项**（见 `.env.example` / `env-for-mini.txt`）：
+  `SUPABASE_URL`、`SUPABASE_ANON_KEY`、`SUPABASE_SERVICE_ROLE_KEY`、`DOUBAN_COOKIE`、`DOUBAN_PROXY`(可空)。
 
-## 依赖
-- **Node 22+**(用其原生 fetch / undici)。
-- **零第三方 npm 依赖**(代理走 Node 内置 undici 的 ProxyAgent)。`package.json` 的 dependencies 为空。
+---
 
-## 安全
-- `service_role` key 只在抓取端用,**绝不进前端**;`config.js` 只含 `anon` key。
-- `.env`、`config.js`、`logs/` 均被 `.gitignore` 忽略。
-- 查看端的「保留/淘汰」写回是**简化方案**:RLS 允许 anon 仅更新 `status`/`note` 两列。公开访问场景建议加 Supabase Auth 登录,详见 schema.sql 注释。
+## 关键文件
 
-## 已知边界(重要)
-- **GitHub Actions 机房 IP 抓豆瓣大概率被封**。强烈推荐 Mac mini 住宅 IP;Actions 仅备用且需住宅代理。
-- **豆瓣 cookie 会过期**(通常几周到几个月),失效后抓取会被限速。届时重新从浏览器取 cookie 填进 `.env`,重跑 `setup-macmini.sh`(或更新 Secret)即可。脚本带**哨兵检测**,一旦被限速会立即停止并在 `douban_runs` 记 `blocked=true`,查看端顶部会显示「⚠️被限速」。
-- 短评数 / 星级百分比解析依赖豆瓣详情页 HTML 结构,豆瓣若改版需调整 `lib.mjs` 的 `parseSubjectRatings` 正则。
-- `fetch-roster.mjs` 默认只覆盖主要产地国家(见文件顶部 `COUNTRIES` 常量),可按需增减或做轮换。
-```
+| 路径 | 作用 |
+|---|---|
+| `scripts/run-daily.mjs` | 每日编排：依次跑全部抓取步骤，写 daily 运行日志 |
+| `scripts/lib.mjs` | 公共库：豆瓣请求/限速哨兵/HTML·RSS 解析/Supabase REST 封装 |
+| `scripts/fetch-*.mjs` | 各数据源抓取脚本（roster/ratings/boxoffice/news） |
+| `scripts/enrich-*.mjs` | 详情增强（豆瓣详情、票房片详情） |
+| `scripts/seed-*.mjs` | 灌底库（影片种子、电影节、入围片单） |
+| `app.js` / `index.html` / `styles.css` | 查看端（纯原生，无框架） |
+| `supabase/schema.sql` + `schema2.sql` + `upgrade-v3.sql` | 数据库结构（按顺序执行；新库一次跑完即可） |
+| `data/festivals.json` / `festival_films_2026.json` | 电影节底库与入围片单源数据 |
+| `setup-macmini.sh` / `launchd/*.plist` | Mac mini 定时任务一键部署 |
+
+---
+
+## 维护提示
+
+- **cookie 失效**：查看端顶部出现「⚠️被限速」或日志「哨兵未通过」→ 重取豆瓣 cookie，更新 `.env`，重跑 `bash setup-macmini.sh 时间`。
+- **只让一台机器抓**：避免主力 Mac 与 mini 同时抓豆瓣（更易被限速）。
+- **改抓取时间**：mini 上重跑 `bash setup-macmini.sh 新时间`，再按打印的 `pmset` 行设唤醒。
+- **不要用 GitHub Actions 直接抓豆瓣**：机房 IP 会被封，抓取必须放住宅 IP 的 mini。
