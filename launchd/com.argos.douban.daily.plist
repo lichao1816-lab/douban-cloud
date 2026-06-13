@@ -43,11 +43,11 @@
     <key>PATH</key><string>/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin</string>
   </dict>
 
-  <!-- 每天 10:30 触发 -->
+  <!-- 每天定时触发(时间由 setup-macmini.sh 注入) -->
   <key>StartCalendarInterval</key>
   <dict>
-    <key>Hour</key><integer>10</integer>
-    <key>Minute</key><integer>30</integer>
+    <key>Hour</key><integer>__HOUR__</integer>
+    <key>Minute</key><integer>__MINUTE__</integer>
   </dict>
 
   <!-- 日志 -->

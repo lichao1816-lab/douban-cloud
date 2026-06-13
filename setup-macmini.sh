@@ -12,6 +12,19 @@ cd "$(dirname "$0")"
 ROOT="$(pwd)"
 echo "项目目录: $ROOT"
 
+# ---------- 0. 解析定时时间(可选参数 HH:MM,默认 10:30) ----------
+RUN_TIME="${1:-10:30}"
+if ! echo "$RUN_TIME" | grep -Eq '^[0-2]?[0-9]:[0-5][0-9]$'; then
+  echo "❌ 时间格式应为 HH:MM(24小时制),例如 09:00。你传的是: $RUN_TIME"
+  exit 1
+fi
+RUN_HOUR=$((10#$(echo "$RUN_TIME" | cut -d: -f1)))   # 去前导0转十进制
+RUN_MIN=$((10#$(echo "$RUN_TIME" | cut -d: -f2)))
+echo "✅ 每日抓取时间设为: $(printf '%02d:%02d' "$RUN_HOUR" "$RUN_MIN")"
+# 唤醒时间 = 抓取前 5 分钟
+WAKE_TOTAL=$(( RUN_HOUR*60 + RUN_MIN - 5 )); [ "$WAKE_TOTAL" -lt 0 ] && WAKE_TOTAL=$((WAKE_TOTAL+1440))
+WAKE_HM="$(printf '%02d:%02d:00' $((WAKE_TOTAL/60)) $((WAKE_TOTAL%60)))"
+
 # ---------- 1. 检查 Node ----------
 if ! command -v node >/dev/null 2>&1; then
   echo "❌ 没找到 node。请先安装 Node 22:"
@@ -65,9 +78,9 @@ PLIST_DST="$HOME/Library/LaunchAgents/com.argos.douban.daily.plist"
 echo "→ 生成 launchd plist 到 $PLIST_DST"
 # 用 python 做安全替换(避免 sed 对特殊字符/路径出错)
 python3 - "$PLIST_SRC" "$PLIST_DST" "$NODE_BIN" "$ROOT" \
-  "$SUPA_URL" "$SUPA_SR" "$SUPA_AN" "$DB_COOKIE" "$DB_PROXY" <<'PY'
+  "$SUPA_URL" "$SUPA_SR" "$SUPA_AN" "$DB_COOKIE" "$DB_PROXY" "$RUN_HOUR" "$RUN_MIN" <<'PY'
 import sys
-src,dst,node,root,url,sr,an,cookie,proxy = sys.argv[1:10]
+src,dst,node,root,url,sr,an,cookie,proxy,hour,minute = sys.argv[1:12]
 t = open(src,encoding='utf-8').read()
 t = t.replace('/替换为node路径/node', node)
 t = t.replace('/替换为你的实际路径/douban-cloud', root)
@@ -76,6 +89,8 @@ t = t.replace('__SUPABASE_SERVICE_ROLE_KEY__', sr)
 t = t.replace('__SUPABASE_ANON_KEY__', an)
 t = t.replace('__DOUBAN_COOKIE__', cookie)
 t = t.replace('__DOUBAN_PROXY__', proxy)
+t = t.replace('__HOUR__', hour)
+t = t.replace('__MINUTE__', minute)
 import os
 os.makedirs(os.path.dirname(dst), exist_ok=True)
 open(dst,'w',encoding='utf-8').write(t)
@@ -86,22 +101,22 @@ PY
 echo "→ 装载定时任务..."
 launchctl unload "$PLIST_DST" 2>/dev/null || true
 launchctl load "$PLIST_DST"
-echo "✅ 已装载 com.argos.douban.daily(每天 10:30 运行)"
+echo "✅ 已装载 com.argos.douban.daily(每天 $(printf '%02d:%02d' "$RUN_HOUR" "$RUN_MIN") 运行)"
 echo "   立即测试一次:  launchctl start com.argos.douban.daily"
 echo "   看日志:        tail -f logs/daily.out.log"
 
 # ---------- 8. 防睡眠提示 ----------
-cat <<'TIP'
+cat <<TIP
 
 ──────────────────────────────────────────────
 防睡眠设置(重要,否则定时任务会被睡眠跳过):
   方式一(系统设置):系统设置 → 电池/节能 → 勾选"防止电脑自动进入睡眠"。
   方式二(命令行,临时):  caffeinate -s &
-  方式三(更稳,定时唤醒):
-    sudo pmset repeat wakeorpoweron MTWRFSU 10:25:00
-    (每天 10:25 自动唤醒,留 5 分钟给 10:30 的任务)
+  方式三(更稳,定时唤醒,推荐):
+    sudo pmset repeat wakeorpoweron MTWRFSU $WAKE_HM
+    (每天 $WAKE_HM 自动唤醒,留 5 分钟给 $(printf '%02d:%02d' "$RUN_HOUR" "$RUN_MIN") 的任务)
 ──────────────────────────────────────────────
 
 部署完成 ✅
-查看端:把整个项目目录推到 GitHub,用 Cloudflare Pages / Vercel / GitHub Pages 发布即可。
+查看端已在 GitHub Pages 上线,mini 只负责抓取,无需再发布。
 TIP

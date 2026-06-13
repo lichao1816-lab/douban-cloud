@@ -1,7 +1,13 @@
 # Mac mini 部署傻瓜教程（照着做就行）
 
 这份教程面向**不写代码的人**。目标:让家里的 Mac mini 每天自动去豆瓣抓数据，存到云端，你用手机随时看。
-全程大概 20 分钟。遇到任何一步卡住，把屏幕截图发出来问即可。
+全程大概 15 分钟。遇到任何一步卡住，把屏幕截图发出来问即可。
+
+> **重要前提（2026-06 更新）**：Supabase 是**云端同一个数据库**，主力 Mac 已经把表结构和全部数据（片库/节展/票房等）都建好灌好了。
+> 所以 **mini 不需要重新建表、不需要 `npm run seed`、不需要灌节展**——它连的就是那个云库，只负责"每天抓新数据写进去"。
+> 因此下面**跳过了原来的「建表」「灌种子」两步**。如果你看到老版教程里的第5/6步，忽略即可。
+>
+> 简版路线：装 Node → git clone 代码 → 填 .env → `bash setup-macmini.sh 时间` → 防睡眠。
 
 ---
 
@@ -67,70 +73,65 @@ cookie 就是豆瓣用来认得“是你登录”的一串字符。取法（用 
 
 ## 第 4 步：填写 .env（钥匙文件）
 
-1. 在终端复制模板：
-   ```
-   cp .env.example .env
-   ```
-2. 用文本编辑器打开它：
-   ```
-   open -e .env
-   ```
-3. 把下面几项填上（等号后面换成真值，**不要加引号也不要留空格**）：
-   - `SUPABASE_URL=` → Supabase 控制台 → ⚙️ Project Settings → API → **Project URL**
-   - `SUPABASE_ANON_KEY=` → 同页面的 **anon public** key
-   - `SUPABASE_SERVICE_ROLE_KEY=` → 同页面的 **service_role** key（保密！）
-   - `DOUBAN_COOKIE=` → 粘贴第 3 步复制的**整段 cookie**
-   - `DOUBAN_PROXY=` → **留空**即可（家里住宅 IP 不需要代理）
-4. 保存（`Command + S`）关闭。
+**最省事**：主力 Mac 上的 `阿尔戈斯计划/env-for-mini.txt` 里已经把三把 Supabase 密钥 + 豆瓣 cookie 全填好了。
+直接把这个文件 **AirDrop 到 mini**，放进 `~/douban-cloud/` 目录，改名为 `.env` 即可（终端：`mv ~/Downloads/env-for-mini.txt ~/douban-cloud/.env`）。然后跳到第 6 步。
+
+> ⚠️ cookie 有时效（几周~几月会过期）。本文件里的 cookie 是 2026-06 取的；若 mini 首跑日志出现「被限速/哨兵未通过」，按本文最后「cookie 失效怎么办」重取。
+
+**手动填法**（不想 AirDrop 时）：
+1. `cp .env.example .env` 然后 `open -e .env`
+2. 填四项（等号后换真值，**不要加引号也不要留空格**）：
+   - `SUPABASE_URL=` `SUPABASE_ANON_KEY=` `SUPABASE_SERVICE_ROLE_KEY=` → 见 env-for-mini.txt 或 Supabase 控制台 → Project Settings → API
+   - `DOUBAN_COOKIE=` → 第 3 步复制的整段 cookie
+   - `DOUBAN_PROXY=` → 留空（住宅 IP 不需要代理）
+3. 保存关闭。
 
 ---
 
-## 第 5 步：建数据库表（只做一次）
+## 第 5 步：~~建表~~ + ~~灌种子~~ —— 跳过！
 
-1. 打开 Supabase 控制台 → 左侧「**SQL Editor**」→ New query。
-2. 用文本编辑器打开项目里的 `supabase/schema.sql`，**全选复制**，粘贴到 SQL Editor。
-3. 点「**Run**」。看到成功提示即可。
+云库已由主力 Mac 建好灌满，mini **不用**再做。直接进第 6 步。
 
 ---
 
-## 第 6 步：灌入初始片单
+## 第 6 步：一键装定时任务（可自定义时间）
 
-终端里运行：
+终端里运行（把 `09:00` 换成你想每天几点抓，24 小时制；不写则默认 10:30）：
 ```
-npm run seed
+bash setup-macmini.sh 09:00
 ```
-看到 `完成 ✅` 就好。这一步把 `data/seed.json`（八千多部片）导入了云端。
-
----
-
-## 第 7 步：一键装定时任务
-
-终端里运行：
-```
-bash setup-macmini.sh
-```
-脚本会自动：检查 Node、生成网页配置、把你的 .env 写进定时任务、装好「每天 10:30 自动抓」。
+脚本会自动：检查 Node、生成网页配置、把你的 .env 写进定时任务、按你给的时间装好「每天自动抓」。
 看到最后的 `部署完成 ✅` 就成功了。
 
-**立刻测试一次**（不用等到明天 10:30）：
+**立刻测试一次**（不用等到点）：
 ```
 launchctl start com.argos.douban.daily
 tail -f logs/daily.out.log
 ```
 屏幕会滚动日志。看到 `今日汇总` 且 `是否被豆瓣限速: 否` 就一切正常。按 `Control + C` 退出查看。
 
+> 这一跑会完整执行：抓片单 → 抓评分 → 详情增强 → 全球票房 → 票房片详情 → 媒体资讯(含自动翻译)。
+> 即本对话新增的"票房卡片详情"和"资讯中文化"在 mini 上每天都会自动带上。
+
 ---
 
-## 第 8 步：设置“永不睡眠”（很重要）
+## 第 7 步：设置“永不睡眠”（很重要）
 
 电脑睡着了定时任务就不跑。二选一：
 
 - **图形界面**：系统设置 →「电池」或「节能」→ 勾选「**防止电脑自动进入睡眠**」（接电源时）。
-- **命令行（更稳，让它每天定时自己醒来）**：
-  ```
-  sudo pmset repeat wakeorpoweron MTWRFSU 10:25:00
-  ```
-  （每天 10:25 自动唤醒，留 5 分钟给 10:30 的任务；会要求输入开机密码。）
+- **命令行（更稳，让它每天定时自己醒来）**：脚本跑完会**直接打印**一行带正确时间的 `sudo pmset ...` 命令（已按你设的抓取时间自动减 5 分钟算好），复制那行执行、输入开机密码即可。
+  例如设 09:00 抓，它会让你跑 `sudo pmset repeat wakeorpoweron MTWRFSU 08:55:00`。
+
+---
+
+## 第 8 步：主力 Mac 别再重复跑
+
+mini 接管后，主力 Mac 上若也装过定时任务，请停掉，避免两台机器同时抓豆瓣（更容易被限速）：
+```
+launchctl unload ~/Library/LaunchAgents/com.argos.douban.daily.plist
+```
+（主力 Mac 没装过就忽略这步。）
 
 ---
 
