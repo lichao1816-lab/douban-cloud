@@ -124,8 +124,9 @@ export async function sentinelOk() {
     'https://movie.douban.com/j/new_search_subjects?' +
     'sort=R&range=0,10&tags=&start=0&genres=&countries=%E7%BE%8E%E5%9B%BD&year_range=2026,2026';
   const json = await doubanGet(url, { json: true });
-  const ok = !!(json && Array.isArray(json.data) && json.data.length >= 0 && 'data' in json);
-  if (!ok) console.warn('[sentinel] 哨兵未通过,疑似被限速/封禁');
+  // 美国2026 必然有结果;返回空数组=被软限速(豆瓣常以空响应代替403)。原 length>=0 恒真是bug。
+  const ok = !!(json && Array.isArray(json.data) && json.data.length > 0);
+  if (!ok) console.warn('[sentinel] 哨兵未通过,疑似被限速/封禁(或 cookie 过期)');
   return ok;
 }
 

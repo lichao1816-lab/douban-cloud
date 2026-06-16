@@ -55,7 +55,7 @@ async function main() {
   const existing = await selectFilms('select=id');
   const existingIds = new Set(existing.map((x) => x.id));
   const TODAY = new Date().toISOString().slice(0, 10);
-  let blocked = false, totalAdded = 0;
+  let blocked = false, totalAdded = 0, zeroRuns = 0;
 
   for (const { region } of todo) {
     if (blocked) break;
@@ -93,13 +93,21 @@ async function main() {
     }
     for (let i = 0; i < rows.length; i += 200) await upsertFilms(rows.slice(i, i + 200), true);
     totalAdded += rows.length;
-    if (!blocked) {
+    if (blocked) break;
+    if (found.size > 0) {
       await sb('PATCH', `backfill_2025?region=eq.${encodeURIComponent(region)}`,
         { status: 'done', found: found.size, inserted: rows.length, updated_at: new Date().toISOString() },
         { Prefer: 'return=minimal' });
       console.log(`[bf2025] ${region} 完成: 候选 ${found.size},入库 ${rows.length}`);
+    } else {
+      // 候选0 多半是软限速/空响应,不标完成,保留 pending 稍后重试
+      zeroRuns++;
+      console.warn(`[bf2025] ${region} 候选0(疑似限速/空响应),保留 pending 待重试`);
     }
   }
+
+  // 整轮全部候选0 → 判定被限速,退避(让 loop 等更久再续)
+  if (!blocked && zeroRuns >= todo.length) { blocked = true; console.warn('[bf2025] 整轮全 0,判定被限速,退避'); }
 
   const left = await sb('GET', 'backfill_2025?status=eq.pending&select=region');
   await insertRun({
