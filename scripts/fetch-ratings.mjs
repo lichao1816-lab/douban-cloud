@@ -14,10 +14,10 @@ import {
 
 const RATING_PACE = [1200, 1600];
 
-// 今日轮动组:把保留片按 sid 末位分 5 组,每天跑一组(约 1/5 全量)
+// 今日轮动组:把保留片按 sid 末位分 2 组,每天跑一组(约 1/2 全量,2天一整轮)
 function isTodaysGroup(sid) {
   const n = parseInt(String(sid).replace(/\D/g, '').slice(-6) || '0', 10);
-  return n % 5 === dayOfYear() % 5;
+  return n % 2 === dayOfYear() % 2;
 }
 
 function todayStr() {
@@ -36,7 +36,7 @@ async function main() {
     process.exit(2);
   }
 
-  // 取追踪片:重点关注(每天必查,排前优先) + 保留(5天轮动)
+  // 取追踪片:重点关注(每天必查,排前优先) + 保留(2天轮动)
   const keep = await selectFilms(
     'status=in.(' + encodeURIComponent('重点关注,保留') + ')' +
     '&select=id,name,status,star1,star2,star3,star4,star5,comments,last_rating_update'

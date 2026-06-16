@@ -19,6 +19,7 @@
     "festmatch": "node scripts/match-festival-douban.mjs",
     "watchlist": "node scripts/ingest-watchlist.mjs",
     "backfill2025": "node scripts/backfill-2025.mjs",
+    "backfill2025:loop": "node scripts/backfill-2025-loop.mjs",
     "roster": "node scripts/fetch-roster.mjs",
     "ratings": "node scripts/fetch-ratings.mjs",
     "daily": "node scripts/run-daily.mjs",

@@ -23,7 +23,7 @@ const REGIONS = [
   '印度尼西亚', '菲律宾', '越南', '马来西亚', '新加坡', '哥伦比亚', '智利',
   '南非',
 ];
-const REGIONS_PER_RUN = parseInt(process.argv[2], 10) || 4;
+const REGIONS_PER_RUN = parseInt(process.argv[2], 10) || 6;
 const YEAR = 2025;
 const SORTS = ['S', 'R', 'T'];
 const MAX_START = 280, PAGE_SIZE = 20;

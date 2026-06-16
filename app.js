@@ -168,6 +168,10 @@
         (r.directors || '').toLowerCase().includes(q));
     }
     rows = rows.slice();
+    // 重点关注默认按"今日新增5星"高→低排(增长最猛的置顶)
+    if (state.sort === 'default' && state.status === '重点关注') {
+      rows.sort((a, b) => (b.d_star5 ?? -1) - (a.d_star5 ?? -1));
+    }
     switch (state.sort) {
       case 'score_desc': rows.sort((a, b) => (b.score ?? -1) - (a.score ?? -1)); break;
       case 'imdb_desc': rows.sort((a, b) => (b.imdb_rating ?? -1) - (a.imdb_rating ?? -1)); break;
