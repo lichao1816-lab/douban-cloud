@@ -1,6 +1,6 @@
 {
   "name": "argos-douban-cloud",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "description": "阿尔戈斯计划 · 豆瓣电影情报云端(Supabase + 静态查看端 + Node 抓取)",
   "type": "module",
