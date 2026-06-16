@@ -55,6 +55,7 @@ async function main() {
 
   await gitPull();
 
+  const watchlist = await run('ingest-watchlist.mjs');         // 自助监测片并入库(放最前,当天即可被 ratings 追踪)
   const roster = await run('fetch-roster.mjs');
   const ratings = await run('fetch-ratings.mjs');
   const enrich = await run('enrich-details.mjs');
@@ -63,19 +64,21 @@ async function main() {
   const boxoffice = await run('fetch-boxoffice.mjs');
   const bofilms = await run('enrich-bofilms.mjs');
   const news = await run('fetch-news.mjs');
+  const bf2025 = await run('backfill-2025.mjs');              // 2025存量后台慢扫(最低优先级,被限速即停)
 
-  const blocked = roster.blocked || ratings.blocked || enrich.blocked || bofilms.blocked || festmatch.blocked;
+  const blocked = roster.blocked || ratings.blocked || enrich.blocked || bofilms.blocked || festmatch.blocked || watchlist.blocked || bf2025.blocked;
   const hadError =
     (roster.code !== 0 && !roster.blocked) || (ratings.code !== 0 && !ratings.blocked) ||
     (enrich.code !== 0 && !enrich.blocked) || boxoffice.code !== 0 ||
     (bofilms.code !== 0 && !bofilms.blocked) || news.code !== 0 ||
-    festfilms.code !== 0 || (festmatch.code !== 0 && !festmatch.blocked);
+    festfilms.code !== 0 || (festmatch.code !== 0 && !festmatch.blocked) ||
+    (watchlist.code !== 0 && !watchlist.blocked) || (bf2025.code !== 0 && !bf2025.blocked);
 
   const st = (r) => (r.code === 0 ? 'ok' : r.blocked ? 'blocked' : 'error');
   const summary =
-    `roster=${st(roster)}, ratings=${st(ratings)}, enrich=${st(enrich)}, ` +
+    `watchlist=${st(watchlist)}, roster=${st(roster)}, ratings=${st(ratings)}, enrich=${st(enrich)}, ` +
     `festfilms=${st(festfilms)}, festmatch=${st(festmatch)}, ` +
-    `boxoffice=${st(boxoffice)}, bofilms=${st(bofilms)}, news=${st(news)}`;
+    `boxoffice=${st(boxoffice)}, bofilms=${st(bofilms)}, news=${st(news)}, bf2025=${st(bf2025)}`;
 
   await insertRun({
     kind: 'daily',
@@ -95,6 +98,8 @@ async function main() {
   console.log('全球票房(boxoffice):', boxoffice.code === 0 ? '完成' : '出错');
   console.log('票房片详情(bofilms):', bofilms.code === 0 ? '完成' : bofilms.blocked ? '被限速' : '出错');
   console.log('媒体资讯(news):', news.code === 0 ? '完成' : '出错');
+  console.log('自助监测(watchlist):', watchlist.code === 0 ? '完成' : watchlist.blocked ? '被限速' : '出错');
+  console.log('2025补扫(bf2025):', bf2025.code === 0 ? '完成' : bf2025.blocked ? '被限速' : '出错');
   console.log('是否被豆瓣限速:', blocked ? '是 ⚠️(建议检查 cookie / 换住宅IP / 配代理)' : '否');
   console.log('================================');
 

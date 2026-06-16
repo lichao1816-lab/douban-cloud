@@ -3,13 +3,23 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="referrer" content="no-referrer" />
   <title>阿尔戈斯 · 全球电影情报站</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Bebas+Neue&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <header class="topbar">
-    <div class="title-row">
-      <h1>阿尔戈斯 · 全球电影情报站</h1>
+    <div class="brand-row">
+      <div class="brand">
+        <div class="logo">A</div>
+        <div class="brand-text">
+          <h1>阿尔戈斯 · 全球电影情报站</h1>
+          <div class="brand-sub">GLOBAL FILM INTELLIGENCE</div>
+        </div>
+      </div>
       <span id="updatedAt" class="updated">加载中…</span>
     </div>
 
@@ -49,7 +59,18 @@
         </select>
         <input id="searchBox" type="search" placeholder="搜索片名/原名/导演…" />
       </div>
-      <div class="count-row"><span id="resultCount">0 部</span></div>
+      <div class="count-row">
+        <span id="resultCount">0 部</span>
+        <button id="addWatchBtn" class="addwatch-toggle" type="button">＋ 添加监测</button>
+      </div>
+      <div id="addWatchForm" class="addwatch-form" hidden>
+        <input id="addWatchUrl" type="text" placeholder="粘贴豆瓣链接,如 https://movie.douban.com/subject/1234567/" />
+        <select id="addWatchStatus">
+          <option value="重点关注">⭐重点关注</option>
+          <option value="保留">保留</option>
+        </select>
+        <button id="addWatchSubmit" type="button">加入监测</button>
+      </div>
     </div>
     <main id="list" class="list"></main>
   </section>
@@ -81,11 +102,13 @@
   <!-- ============ 板块4:电影节 ============ -->
   <section id="sec-festivals" class="section" hidden>
     <div class="subbar">
-      <div class="seg" id="festTierSeg">
+      <div class="seg seg-wrap" id="festTierSeg">
         <button data-tier="all" class="active">全部</button>
-        <button data-tier="S">S级</button>
-        <button data-tier="A">A级</button>
-        <button data-tier="B">B级</button>
+        <button data-tier="国际A类">国际A类</button>
+        <button data-tier="专门竞赛">专门竞赛</button>
+        <button data-tier="重要展映">重要展映</button>
+        <button data-tier="电影奖项">电影奖项</button>
+        <button data-tier="交易市场">交易市场</button>
       </div>
     </div>
     <main id="festList" class="festlist"></main>

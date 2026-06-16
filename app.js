@@ -26,6 +26,7 @@
   let BO = [];                  // 票房条目
   let BO_FILMS = new Map();     // 票房片详情缓存(bo_films 表, sid -> row)
   let NEWS = [];
+  let NEWS_FILM_INDEX = null;    // 资讯↔影片匹配索引(ALL 变动时置空重建)
   let FESTS = [];
   let FEST_FILMS = [];
   const loaded = { douban: false, boxoffice: false, news: false, festivals: false };
@@ -74,12 +75,31 @@
   // ============================================================
   // 板块1:豆瓣情报
   // ============================================================
-  async function loadFilms() {
-    ALL = await fetchAll(
-      'douban_films?select=id,name,orig_name,country,countries,year,score,imdb_rating,' +
-      'genres,directors,actors,duration,status,douban_url,' +
-      'star5,d_star5,comments,d_comments&order=year.desc,id.asc');
-    FILM_BY_ID = new Map(ALL.map((f) => [f.id, f]));
+  const FILM_SELECT = 'douban_films?select=id,name,orig_name,country,countries,year,score,imdb_rating,poster_url,' +
+    'genres,directors,actors,duration,status,douban_url,star5,d_star5,comments,d_comments';
+  let loadedAll = false;
+  const loadedYears = new Set();
+
+  // 提速:不再一次性拉全库,按年份分段加载(首屏只拉当前年,几秒出);切到其它年/全部时再补拉。
+  async function loadFilms(year) {
+    const q = (year && year !== 'all')
+      ? FILM_SELECT + '&year=eq.' + encodeURIComponent(year) + '&order=id.asc'
+      : FILM_SELECT + '&order=year.desc,id.asc';
+    const rows = await fetchAll(q);
+    for (const f of rows) {
+      if (!FILM_BY_ID.has(f.id)) { ALL.push(f); FILM_BY_ID.set(f.id, f); }
+    }
+    if (!year || year === 'all') { loadedAll = true; rows.forEach((f) => loadedYears.add(String(f.year))); }
+    else loadedYears.add(String(year));
+    NEWS_FILM_INDEX = null; // 片库变动,资讯匹配索引重建
+  }
+
+  async function ensureYearLoaded(year) {
+    if (loadedAll) return;
+    if (year === 'all') { listEl.innerHTML = '<div class="empty">加载全部年份中…</div>'; await loadFilms('all'); return; }
+    if (loadedYears.has(String(year))) return;
+    listEl.innerHTML = '<div class="empty">加载 ' + year + ' 年中…</div>';
+    await loadFilms(year);
   }
 
   async function loadLastRun() {
@@ -103,6 +123,35 @@
       body: JSON.stringify({ status }),
     });
     if (!res.ok) throw new Error('写入失败 ' + res.status);
+  }
+
+  // 从豆瓣链接里抠 subject id
+  function sidFromUrl(u) {
+    const m = String(u || '').match(/subject\/(\d+)/) || String(u || '').match(/(\d{6,})/);
+    return m ? m[1] : null;
+  }
+
+  // 加入监测:库里已有→直接改状态;否则写 watchlist,由 mini 次日并入并开始追踪
+  async function addToWatchlist(sid, doubanUrl, desiredStatus, source) {
+    if (!sid) { toast('没找到豆瓣ID'); return; }
+    const inLib = FILM_BY_ID.get(sid);
+    if (inLib) {
+      await setStatus(sid, desiredStatus);
+      inLib.status = desiredStatus;
+      toast('已设为' + (desiredStatus === '重点关注' ? '⭐重点关注' : desiredStatus));
+      renderCurrent();
+      return;
+    }
+    const res = await fetch(REST + '/watchlist', {
+      method: 'POST',
+      headers: { ...HEADERS, Prefer: 'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify({
+        sid, douban_url: doubanUrl || ('https://movie.douban.com/subject/' + sid + '/'),
+        desired_status: desiredStatus, source: source || 'manual', ingested: false,
+      }),
+    });
+    if (!res.ok) { toast('加入失败 ' + res.status); return; }
+    toast('已加入监测，明天起自动追踪 ✅');
   }
 
   function applyFilters() {
@@ -172,10 +221,36 @@
   }
 
   function num(n) { return n == null ? '—' : n.toLocaleString('zh-CN'); }
+  // 票房字符串→数值(用于市场排序;忽略币种,统一名义值)
+  function parseGross(s) {
+    if (!s) return 0;
+    s = String(s).replace(/[,，\s]/g, '');
+    const m = s.match(/([\d.]+)\s*([KMB億万萬])?/i);
+    if (!m) return 0;
+    let n = parseFloat(m[1]) || 0;
+    const u = (m[2] || '').toUpperCase();
+    if (u === 'K') n *= 1e3; else if (u === 'M') n *= 1e6; else if (u === 'B') n *= 1e9;
+    else if (u === '億') n *= 1e8; else if (u === '万' || u === '萬') n *= 1e4;
+    return n;
+  }
   function delta(d) {
     if (d == null) return '';
     if (d > 0) return ` <em class="up">+${num(d)}</em>`;
     return ` <em class="flat">+0</em>`;
+  }
+
+  // 海报:懒加载,失败回退为首字占位块(no-referrer 已在 <meta> 全局设置防盗链)
+  window.__argosPosterFail = function (img) {
+    const d = document.createElement('div');
+    d.className = 'poster ph';
+    d.textContent = img.getAttribute('data-nm') || '?';
+    img.replaceWith(d);
+  };
+  function posterHtml(obj, fallbackName) {
+    const url = obj && obj.poster_url;
+    const nm = String((obj && obj.name) || fallbackName || '?').slice(0, 1);
+    if (url) return `<img class="poster" loading="lazy" referrerpolicy="no-referrer" src="${escapeHtml(url)}" alt="" data-nm="${escapeHtml(nm)}" onerror="__argosPosterFail(this)" />`;
+    return `<div class="poster ph">${escapeHtml(nm)}</div>`;
   }
 
   function cardHtml(r) {
@@ -197,6 +272,7 @@
     return `
       <div class="card" data-id="${r.id}">
         <div class="card-head">
+          ${posterHtml(r)}
           <div class="card-titles">
             <p class="film-name">${escapeHtml(r.name)}${badge}</p>
             ${orig}
@@ -272,6 +348,7 @@
     return `
       <div class="card bo-card" data-id="${film ? film.id : ''}">
         <div class="card-head">
+          ${posterHtml(d, r.title)}
           <div class="card-titles">
             <p class="film-name"><span class="bo-rank">#${r.rank}</span>${escapeHtml(r.title)}${badge}</p>
             ${cnName}
@@ -299,17 +376,21 @@
     $('#boCount').textContent = rows.length ? `${new Set(rows.map(r=>r.market)).size} 个市场 · ${rows.length} 条` : '';
     const el = $('#boList');
     if (!rows.length) { el.innerHTML = '<div class="empty">暂无票房数据(等每日抓取首跑后出现)</div>'; return; }
-    // 按市场分组展示
+    // 按市场分组,市场按"该市场榜单累计票房之和"从高到低排
     const byMarket = new Map();
     for (const r of rows) {
       if (!byMarket.has(r.market)) byMarket.set(r.market, []);
       byMarket.get(r.market).push(r);
     }
-    let html = '';
-    for (const [mk, list] of byMarket) {
+    const groups = [...byMarket.entries()].map(([mk, list]) => {
       list.sort((a, b) => a.rank - b.rank);
-      html += `<h3 class="group-title">${escapeHtml(mk)} <small>${escapeHtml(list[0].period)}</small></h3>`;
-      html += list.map(boCardHtml).join('');
+      const total = list.reduce((s, r) => s + parseGross(r.total_gross || r.weekend_gross), 0);
+      return { mk, list, total };
+    }).sort((a, b) => b.total - a.total);
+    let html = '';
+    for (const g of groups) {
+      html += `<h3 class="group-title">${escapeHtml(g.mk)} <small>${escapeHtml(g.list[0].period)}</small></h3>`;
+      html += g.list.map(boCardHtml).join('');
     }
     el.innerHTML = html;
   }
@@ -350,12 +431,61 @@
     return new Date(iso).toLocaleDateString('zh-CN');
   }
 
+  // 资讯↔影片匹配:用片库的中文名/原名在新闻标题里找最长命中
+  function buildNewsFilmIndex() {
+    const arr = [];
+    for (const f of ALL) {
+      if (f.name && f.name.length >= 3) arr.push({ k: f.name.toLowerCase(), f });
+      if (f.orig_name && f.orig_name.length >= 5) arr.push({ k: f.orig_name.toLowerCase(), f });
+    }
+    arr.sort((a, b) => b.k.length - a.k.length);
+    return arr;
+  }
+  function matchNewsFilm(n) {
+    const idx = NEWS_FILM_INDEX || (NEWS_FILM_INDEX = buildNewsFilmIndex());
+    const hay = ((n.title_cn || '') + ' ' + (n.title || '')).toLowerCase();
+    if (!hay.trim()) return null;
+    for (const e of idx) if (hay.includes(e.k)) return e.f;
+    return null;
+  }
+
   function newsItemHtml(n) {
     const fest = isFestNews(n);
-    // 中文优先:有译文显示译文为主标题,原文变小字;无译文(中文源/未译)直接显示原文
     const mainTitle = n.title_cn || n.title;
     const subTitle = n.title_cn ? n.title : '';
     const summary = n.summary_cn || n.summary;
+
+    // 命中片库 → 渲染成"影片卡"(豆瓣标签+按钮 + 新闻简述/原文)
+    const film = matchNewsFilm(n);
+    if (film) {
+      const badge = `<span class="badge s-${film.status}">${film.status === '重点关注' ? '⭐重点关注' : film.status}</span>`;
+      const scoreHtml = film.score != null ? `<div class="score">${film.score}</div>` : `<div class="score none">未开分</div>`;
+      const imdbHtml = film.imdb_rating != null ? `<div class="imdb">IMDb ${film.imdb_rating}</div>` : '';
+      const meta = [escapeHtml(film.countries || film.country || '—'), film.year ?? ''].filter(Boolean).join(' · ');
+      return `
+        <div class="card news-card" data-id="${film.id}">
+          <div class="card-head">
+            ${posterHtml(film)}
+            <div class="card-titles">
+              <p class="film-name">${escapeHtml(film.name)}${badge}</p>
+              <div class="film-meta">${meta}</div>
+            </div>
+            <div class="card-scores">${scoreHtml}${imdbHtml}</div>
+          </div>
+          <div class="actions">
+            <a class="btn-douban" href="${film.douban_url || '#'}" target="_blank" rel="noopener">豆瓣↗</a>
+            ${actionBtns(film)}
+          </div>
+          <div class="news-attach${fest ? ' news-fest' : ''}">
+            <div class="news-top"><span class="news-src">${escapeHtml(n.source)}</span>${fest ? '<span class="news-fest-tag">🎯节展</span>' : ''}<span class="news-time">${timeAgo(n.published_at)}</span></div>
+            <p class="news-title">${escapeHtml(mainTitle)}</p>
+            ${summary ? `<p class="news-summary">${escapeHtml(summary)}</p>` : ''}
+            <a class="news-orig" href="${n.url}" target="_blank" rel="noopener">阅读原文 ↗</a>
+          </div>
+        </div>`;
+    }
+
+    // 未命中片库 → 普通资讯条
     return `
       <a class="news-item${fest ? ' news-fest' : ''}" href="${n.url}" target="_blank" rel="noopener">
         <div class="news-top"><span class="news-src">${escapeHtml(n.source)}</span>${fest ? '<span class="news-fest-tag">🎯节展</span>' : ''}<span class="news-time">${timeAgo(n.published_at)}</span></div>
@@ -399,14 +529,29 @@
     const films = FEST_FILMS.filter((x) => x.festival_id === f.id);
     const kindCn = { festival: '电影节', award: '奖项', market: '交易市场' }[f.kind] || '';
     const lineupCls = f.lineup_status === '已公布' ? 'ok' : f.lineup_status === '部分公布' ? 'part' : 'none';
-    const filmsHtml = films.length
-      ? `<details class="fest-films"><summary>入围/获奖片单 (${films.length})</summary>` +
-        films.map((x) => `
-          <div class="fest-film">
+    const ffRow = (x) => {
+      const sc = x.douban_score != null ? `<span class="ff-score">豆 ${x.douban_score}</span>` : '';
+      const im = x.imdb_rating != null ? `<span class="ff-imdb">IMDb ${x.imdb_rating}</span>` : '';
+      const link = x.douban_url
+        ? `<a class="ff-act btn-douban" href="${x.douban_url}" target="_blank" rel="noopener">豆瓣↗</a>`
+        : `<a class="ff-act btn-douban dim" href="https://www.douban.com/search?cat=1002&q=${encodeURIComponent(x.title)}" target="_blank" rel="noopener">搜豆瓣↗</a>`;
+      const watch = x.douban_sid
+        ? `<button class="ff-act btn-focus" data-watch="重点关注" data-sid="${escapeHtml(x.douban_sid)}" data-url="${escapeHtml(x.douban_url || '')}">⭐重点</button>` +
+          `<button class="ff-act btn-keep" data-watch="保留" data-sid="${escapeHtml(x.douban_sid)}" data-url="${escapeHtml(x.douban_url || '')}">保留</button>`
+        : '';
+      return `
+        <div class="fest-film">
+          <div class="ff-line">
             <span class="ff-section">${escapeHtml(x.section || '')}</span>
             <span class="ff-title">${escapeHtml(x.title)}${x.prize ? ' 🏅' + escapeHtml(x.prize) : ''}</span>
-            ${x.douban_url ? `<a href="${x.douban_url}" target="_blank" rel="noopener">豆瓣↗</a>` : ''}
-          </div>`).join('') + '</details>'
+            ${sc}${im}
+          </div>
+          <div class="ff-acts">${link}${watch}</div>
+        </div>`;
+    };
+    const filmsHtml = films.length
+      ? `<details class="fest-films"><summary>入围/获奖片单 (${films.length})</summary>` +
+        films.map(ffRow).join('') + '</details>'
       : '';
     return `
       <div class="card fest-card">
@@ -437,16 +582,22 @@
       <div class="radar-tip">片单一公布,资讯板块的"🎯节展雷达"筛选会第一时间出现相关报道;同时让 Claude 当天回填入围名单。</div></div>`;
   }
 
+  // 国际分类(FIAPF口径);底库未回填 class_intl 时按旧 tier 兜底
+  function classOf(f) {
+    return f.class_intl || ({ S: '国际A类', A: '国际A类', B: '重要展映' }[f.tier]) || '重要展映';
+  }
+  const FEST_CLASS_ORDER = ['国际A类', '专门竞赛', '重要展映', '电影奖项', '交易市场'];
+
   function renderFestivals() {
     let rows = FESTS;
-    if (state.festTier !== 'all') rows = rows.filter((f) => f.tier === state.festTier);
+    if (state.festTier !== 'all') rows = rows.filter((f) => classOf(f) === state.festTier);
     const el = $('#festList');
     if (!rows.length) { el.innerHTML = '<div class="empty">暂无电影节数据(先运行 npm run festivals 灌入底库)</div>'; return; }
     let html = state.festTier === 'all' ? radarHtml() : '';
-    for (const tier of ['S', 'A', 'B']) {
-      const group = rows.filter((f) => f.tier === tier);
+    for (const cls of FEST_CLASS_ORDER) {
+      const group = rows.filter((f) => classOf(f) === cls);
       if (!group.length) continue;
-      html += `<h3 class="group-title">${tier} 级 <small>${group.length} 个</small></h3>`;
+      html += `<h3 class="group-title">${cls} <small>${group.length} 个</small></h3>`;
       html += group.map(festCardHtml).join('');
     }
     el.innerHTML = html;
@@ -524,8 +675,17 @@
       showSection(btn.dataset.section);
     });
 
-    // 豆瓣板块
-    bindSeg('yearSeg', 'year', rebuildCountryOptions);
+    // 豆瓣板块:年份切换需先按需加载该年数据再渲染
+    document.getElementById('yearSeg').addEventListener('click', async (e) => {
+      const btn = e.target.closest('button');
+      if (!btn) return;
+      [...e.currentTarget.children].forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      state.year = btn.dataset.year;
+      try { await ensureYearLoaded(state.year); } catch (err) { toast('加载失败: ' + err.message); }
+      rebuildCountryOptions();
+      renderDouban();
+    });
     bindSeg('statusSeg', 'status');
     $('#countrySel').addEventListener('change', (e) => { state.country = e.target.value; renderDouban(); });
     $('#sortSel').addEventListener('change', (e) => { state.sort = e.target.value; renderDouban(); });
@@ -558,10 +718,32 @@
     // 电影节板块
     bindSeg('festTierSeg', 'festTier');
 
-    // 操作按钮(全局委托,豆瓣/票房卡片共用)
+    // 操作按钮(全局委托):data-act=改库内状态;data-watch=加入监测(节展片/资讯片)
     document.body.addEventListener('click', (e) => {
       const btn = e.target.closest('button[data-act]');
-      if (btn) handleAction(btn);
+      if (btn) { handleAction(btn); return; }
+      const w = e.target.closest('button[data-watch]');
+      if (w) {
+        e.preventDefault();
+        w.disabled = true;
+        addToWatchlist(w.dataset.sid, w.dataset.url, w.dataset.watch, 'festival')
+          .catch((err) => toast('失败: ' + err.message))
+          .finally(() => { w.disabled = false; });
+      }
+    });
+
+    // 添加监测(重点关注板块的自助添加)
+    const awBtn = $('#addWatchBtn'), awForm = $('#addWatchForm');
+    if (awBtn) awBtn.addEventListener('click', () => { awForm.hidden = !awForm.hidden; if (!awForm.hidden) $('#addWatchUrl').focus(); });
+    if ($('#addWatchSubmit')) $('#addWatchSubmit').addEventListener('click', async () => {
+      const url = $('#addWatchUrl').value.trim();
+      const sid = sidFromUrl(url);
+      if (!sid) { toast('请粘贴有效的豆瓣链接'); return; }
+      const status = $('#addWatchStatus').value;
+      try {
+        await addToWatchlist(sid, url.startsWith('http') ? url : '', status, 'manual');
+        $('#addWatchUrl').value = ''; awForm.hidden = true;
+      } catch (err) { toast('失败: ' + err.message); }
     });
   }
 
@@ -570,7 +752,7 @@
     bindEvents();
     listEl.innerHTML = '<div class="empty">加载中…(首次约几秒)</div>';
     try {
-      await Promise.all([loadFilms(), loadLastRun()]);
+      await Promise.all([loadFilms(state.year), loadLastRun()]);
       loaded.douban = true;
       rebuildCountryOptions();
       renderDouban();

@@ -7,7 +7,7 @@
 // ============================================================
 
 import {
-  doubanSubjectHtml, parseSubjectDetail, fetchImdbRating,
+  doubanSubjectHtml, parseSubjectDetail, fetchImdbRating, parsePoster,
   selectFilms, updateFilm, insertRun, sentinelOk, pace,
 } from './lib.mjs';
 
@@ -47,7 +47,7 @@ async function main() {
       const patch = {
         orig_name: d.orig_name, countries: d.countries, genres: d.genres,
         directors: d.directors, actors: d.actors, duration: d.duration,
-        imdb_id: d.imdb_id,
+        imdb_id: d.imdb_id, poster_url: parsePoster(html),
         detail_updated_at: new Date().toISOString(),
       };
       if (d.score != null) patch.score = d.score;

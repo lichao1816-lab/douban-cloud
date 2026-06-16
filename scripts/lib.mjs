@@ -488,6 +488,22 @@ export function parseBomWeekendChart(html, topN = 3) {
   return out;
 }
 
+/** parsePoster — 从豆瓣详情页取海报图 URL(og:image 最稳;只存URL不存图本体) */
+export function parsePoster(html) {
+  if (!html) return null;
+  let m = html.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/);
+  if (m && m[1] && !/celebrity|default/.test(m[1])) return m[1];
+  m = html.match(/id="mainpic"[\s\S]{0,200}?<img[^>]+src="([^"]+)"/);
+  return m ? m[1] : null;
+}
+
+/** parseYear — 从豆瓣详情页标题旁取年份 (2026) */
+export function parseYear(html) {
+  if (!html) return null;
+  const m = html.match(/<span class="year">\((\d{4})\)<\/span>/);
+  return m ? parseInt(m[1], 10) : null;
+}
+
 /** doubanSuggest — 按片名搜豆瓣,返回最可能的匹配 {sid,url,title} */
 export async function doubanSuggest(q) {
   const json = await doubanGet(

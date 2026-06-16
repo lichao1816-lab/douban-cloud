@@ -12,7 +12,8 @@
   "lineup_status": "已公布",
   "official_url": "https://www.festival-cannes.com",
   "notes": "含市场Marché du Film;第79届金棕榈《Fjord》(蒙吉),片单75部已回填(2026-06-12核实)",
-  "lineup_announce": "下届:2027-04中旬公布片单"
+  "lineup_announce": "下届:2027-04中旬公布片单",
+  "class_intl": "国际A类"
  },
  {
   "id": "venice",
@@ -27,7 +28,8 @@
   "lineup_status": "未公布",
   "official_url": "https://www.labiennale.org/en/cinema",
   "notes": "第83届,评委会主席Maggie Gyllenhaal;通常7月下旬公布片单",
-  "lineup_announce": "★2026-07下旬公布片单(往年7/22前后)——颁奖季首个大节点"
+  "lineup_announce": "★2026-07下旬公布片单(往年7/22前后)——颁奖季首个大节点",
+  "class_intl": "国际A类"
  },
  {
   "id": "berlinale",
@@ -42,7 +44,8 @@
   "lineup_status": "已公布",
   "official_url": "https://www.berlinale.de",
   "notes": "含市场EFM;第76届金熊《Yellow Letters》(伊尔克·查塔克),主竞赛/视点/特别/全景88部已回填(2026-06-12核实)",
-  "lineup_announce": "下届:2026-12~2027-01分批公布"
+  "lineup_announce": "下届:2026-12~2027-01分批公布",
+  "class_intl": "国际A类"
  },
  {
   "id": "oscars",
@@ -57,7 +60,8 @@
   "lineup_status": "已公布",
   "official_url": "https://www.oscars.org",
   "notes": "最佳影片《一战再战》(6奖);《罪人》16提名破纪录;全部长片类别35部已回填(2026-06-12核实);2027届提名通常1月公布",
-  "lineup_announce": "2027-01下旬公布提名(入围短名单12月)"
+  "lineup_announce": "2027-01下旬公布提名(入围短名单12月)",
+  "class_intl": "电影奖项"
  },
  {
   "id": "toronto",
@@ -72,7 +76,8 @@
   "lineup_status": "未公布",
   "official_url": "https://tiff.net",
   "notes": "第51届;颁奖季风向标,8月起分批公布片单;TIFF市场09-10~09-16",
-  "lineup_announce": "★2026-07底~08月分批公布(首批通常7月最后一周)"
+  "lineup_announce": "★2026-07底~08月分批公布(首批通常7月最后一周)",
+  "class_intl": "重要展映"
  },
  {
   "id": "sundance",
@@ -87,7 +92,8 @@
   "lineup_status": "已公布",
   "official_url": "https://festival.sundance.org",
   "notes": "独立片大本营;犹他州最后一届,2027起迁科罗拉多博尔德",
-  "lineup_announce": "下届:2026-12初公布(2027博尔德首届)"
+  "lineup_announce": "下届:2026-12初公布(2027博尔德首届)",
+  "class_intl": "重要展映"
  },
  {
   "id": "busan",
@@ -102,7 +108,8 @@
   "lineup_status": "未公布",
   "official_url": "https://www.biff.kr",
   "notes": "第31届;亚洲最大;含亚洲内容市场ACFM",
-  "lineup_announce": "★2026-09上旬公布"
+  "lineup_announce": "★2026-09上旬公布",
+  "class_intl": "重要展映"
  },
  {
   "id": "locarno",
@@ -117,7 +124,8 @@
   "lineup_status": "未公布",
   "official_url": "https://www.locarnofestival.ch",
   "notes": "第79届;作者电影/新导演",
-  "lineup_announce": "★2026-07上旬公布——临近,重点盯"
+  "lineup_announce": "★2026-07上旬公布——临近,重点盯",
+  "class_intl": "国际A类"
  },
  {
   "id": "san-sebastian",
@@ -132,7 +140,8 @@
   "lineup_status": "未公布",
   "official_url": "https://www.sansebastianfestival.com",
   "notes": "第74届;西语世界最高规格",
-  "lineup_announce": "★2026-07~08分批公布"
+  "lineup_announce": "★2026-07~08分批公布",
+  "class_intl": "国际A类"
  },
  {
   "id": "rotterdam",
@@ -147,7 +156,8 @@
   "lineup_status": "已公布",
   "official_url": "https://iffr.com",
   "notes": "第55届;先锋/新人",
-  "lineup_announce": "下届:2026-12~2027-01公布"
+  "lineup_announce": "下届:2026-12~2027-01公布",
+  "class_intl": "重要展映"
  },
  {
   "id": "tokyo",
@@ -162,7 +172,8 @@
   "lineup_status": "未公布",
   "official_url": "https://www.tiff-jp.net",
   "notes": "第39届;含市场TIFFCOM(10-28~10-30)",
-  "lineup_announce": "★2026-09下旬公布"
+  "lineup_announce": "★2026-09下旬公布",
+  "class_intl": "国际A类"
  },
  {
   "id": "shanghai",
@@ -177,7 +188,8 @@
   "lineup_status": "部分公布",
   "official_url": "https://www.siff.com",
   "notes": "第28届金爵奖;今日开幕,展映延长放映至06-28;闭幕后回填获奖名单",
-  "lineup_announce": "已公布;06-21闭幕出金爵奖获奖名单→回填"
+  "lineup_announce": "已公布;06-21闭幕出金爵奖获奖名单→回填",
+  "class_intl": "国际A类"
  },
  {
   "id": "karlovy-vary",
@@ -192,7 +204,8 @@
   "lineup_status": "未公布",
   "official_url": "https://www.kviff.com",
   "notes": "第60届/建节80周年;中东欧最高规格",
-  "lineup_announce": "★往年6月上旬公布——可能已出,优先核实回填"
+  "lineup_announce": "★往年6月上旬公布——可能已出,优先核实回填",
+  "class_intl": "国际A类"
  },
  {
   "id": "golden-globes",
@@ -207,7 +220,8 @@
   "lineup_status": "已公布",
   "official_url": "https://goldenglobes.com",
   "notes": "颁奖季第一站;比弗利希尔顿",
-  "lineup_announce": "2026-12中旬公布提名"
+  "lineup_announce": "2026-12中旬公布提名",
+  "class_intl": "电影奖项"
  },
  {
   "id": "bafta",
@@ -222,7 +236,8 @@
   "lineup_status": "已公布",
   "official_url": "https://www.bafta.org",
   "notes": "皇家节日音乐厅,Alan Cumming主持",
-  "lineup_announce": "2027-01上旬公布提名"
+  "lineup_announce": "2027-01上旬公布提名",
+  "class_intl": "电影奖项"
  },
  {
   "id": "cesar",
@@ -237,7 +252,8 @@
   "lineup_status": "已公布",
   "official_url": "https://www.academie-cinema.org",
   "notes": "法国最高电影奖;巴黎Olympia",
-  "lineup_announce": "2027-01底公布提名"
+  "lineup_announce": "2027-01底公布提名",
+  "class_intl": "电影奖项"
  },
  {
   "id": "efa",
@@ -252,7 +268,8 @@
   "lineup_status": "已公布",
   "official_url": "https://europeanfilmawards.eu",
   "notes": "★档期变更:已整体从12月移至次年1月,2026年12月无颁奖礼,第39届预计2027-01;本届柏林世界文化宫",
-  "lineup_announce": "2026-11公布提名(第39届2027-01颁)"
+  "lineup_announce": "2026-11公布提名(第39届2027-01颁)",
+  "class_intl": "电影奖项"
  },
  {
   "id": "golden-horse",
@@ -267,7 +284,8 @@
   "lineup_status": "未公布",
   "official_url": "https://www.goldenhorse.org.tw",
   "notes": "华语最高奖之一;入围10月公布;金马影展11-06~11-22;台北流行音乐中心",
-  "lineup_announce": "★2026-10上旬公布入围名单"
+  "lineup_announce": "★2026-10上旬公布入围名单",
+  "class_intl": "电影奖项"
  },
  {
   "id": "hkfa",
@@ -282,7 +300,8 @@
   "lineup_status": "已公布",
   "official_url": "https://www.hkfaa.com",
   "notes": "香港文化中心,ViuTV直播",
-  "lineup_announce": "2027-01~02公布提名"
+  "lineup_announce": "2027-01~02公布提名",
+  "class_intl": "电影奖项"
  },
  {
   "id": "annecy",
@@ -297,7 +316,8 @@
   "lineup_status": "已公布",
   "official_url": "https://www.annecyfestival.com",
   "notes": "第50届;动画最高殿堂;本届因G7峰会特例延后约两周;Mifa市场06-23~06-26",
-  "lineup_announce": "已公布;06-21开幕,06-27闭幕出获奖→回填"
+  "lineup_announce": "已公布;06-21开幕,06-27闭幕出获奖→回填",
+  "class_intl": "专门竞赛"
  },
  {
   "id": "tribeca",
@@ -312,7 +332,8 @@
   "lineup_status": "已公布",
   "official_url": "https://www.tribecafilm.com",
   "notes": "第25届",
-  "lineup_announce": "已公布;06-14闭幕出获奖→回填"
+  "lineup_announce": "已公布;06-14闭幕出获奖→回填",
+  "class_intl": "重要展映"
  },
  {
   "id": "sxsw",
@@ -327,7 +348,8 @@
   "lineup_status": "已公布",
   "official_url": "https://www.sxsw.com",
   "notes": "类型片/新媒体;本届缩短为7天",
-  "lineup_announce": "下届:2026-10~11分批公布"
+  "lineup_announce": "下届:2026-10~11分批公布",
+  "class_intl": "重要展映"
  },
  {
   "id": "hkiff",
@@ -342,7 +364,8 @@
   "lineup_status": "已公布",
   "official_url": "https://www.hkiff.org.hk",
   "notes": "金禧届;同期香港影视娱乐博览/FilMart(3月,市场)",
-  "lineup_announce": "下届:2027-02~03公布"
+  "lineup_announce": "下届:2027-02~03公布",
+  "class_intl": "重要展映"
  },
  {
   "id": "beijing",
@@ -357,7 +380,8 @@
   "lineup_status": "已公布",
   "official_url": "https://www.bjiff.com",
   "notes": "天坛奖;北京展映至04-26",
-  "lineup_announce": "下届:2027-03~04公布"
+  "lineup_announce": "下届:2027-03~04公布",
+  "class_intl": "重要展映"
  },
  {
   "id": "golden-rooster",
@@ -372,7 +396,8 @@
   "lineup_status": "未公布",
   "official_url": "",
   "notes": "内地最高专业奖;第39届日期官方尚未公布;同年百花奖(第38届)预计8月",
-  "lineup_announce": "2026-10~11公布提名(大会日期未公布)"
+  "lineup_announce": "2026-10~11公布提名(大会日期未公布)",
+  "class_intl": "电影奖项"
  },
  {
   "id": "tallinn",
@@ -387,7 +412,8 @@
   "lineup_status": "未公布",
   "official_url": "https://poff.ee",
   "notes": "FIAPF A类;30周年届,塔尔图设分会场",
-  "lineup_announce": "★2026-09~10分批公布"
+  "lineup_announce": "★2026-09~10分批公布",
+  "class_intl": "国际A类"
  },
  {
   "id": "sitges",
@@ -402,7 +428,8 @@
   "lineup_status": "未公布",
   "official_url": "https://sitgesfilmfestival.com",
   "notes": "第59届;类型片/恐怖奇幻最高规格",
-  "lineup_announce": "★2026-07~09分批公布"
+  "lineup_announce": "★2026-07~09分批公布",
+  "class_intl": "专门竞赛"
  },
  {
   "id": "fantasia",
@@ -417,7 +444,8 @@
   "lineup_status": "未公布",
   "official_url": "https://fantasiafestival.com",
   "notes": "第30届;北美最大类型片节",
-  "lineup_announce": "★往年6月中~7月初公布——临近,重点盯"
+  "lineup_announce": "★往年6月中~7月初公布——临近,重点盯",
+  "class_intl": "专门竞赛"
  },
  {
   "id": "afm",
@@ -432,7 +460,8 @@
   "lineup_status": "未公布",
   "official_url": "https://americanfilmmarket.com",
   "notes": "★地点变更:已回归洛杉矶Fairmont Century Plaza(不再拉斯维加斯);纯交易市场,版权采购重点场合",
-  "lineup_announce": "无入围片单(交易市场);11月前出参展片目/卖片单"
+  "lineup_announce": "无入围片单(交易市场);11月前出参展片目/卖片单",
+  "class_intl": "交易市场"
  },
  {
   "id": "filmart",
@@ -447,6 +476,67 @@
   "lineup_status": "已公布",
   "official_url": "https://hkfilmart.hktdc.com",
   "notes": "亚洲最大影视交易市场;香港会展中心",
-  "lineup_announce": "下届:2027-03"
+  "lineup_announce": "下届:2027-03",
+  "class_intl": "交易市场"
+ },
+ {
+  "id": "pingyao",
+  "name": "Pingyao International Film Festival",
+  "name_cn": "平遥国际电影展",
+  "tier": "B",
+  "kind": "festival",
+  "country": "中国",
+  "city": "山西平遥",
+  "month_window": "10月中旬",
+  "class_intl": "重要展映",
+  "lineup_status": "未公布",
+  "official_url": "https://www.pyiffestival.com",
+  "lineup_announce": "2026-09下旬公布",
+  "notes": "贾樟柯发起;费穆荣誉/罗伯托·罗西里尼荣誉(藏龙单元)竞赛,华语青年与艺术片重镇"
+ },
+ {
+  "id": "first",
+  "name": "FIRST International Film Festival",
+  "name_cn": "FIRST青年电影展",
+  "tier": "B",
+  "kind": "festival",
+  "country": "中国",
+  "city": "青海西宁",
+  "month_window": "7月下旬",
+  "class_intl": "重要展映",
+  "lineup_status": "未公布",
+  "official_url": "https://www.firstfilm.org.cn",
+  "lineup_announce": "★2026-06~07公布入围",
+  "notes": "华语青年导演处女作/早期作品最重要平台,主竞赛+短片"
+ },
+ {
+  "id": "hainan",
+  "name": "Hainan Island International Film Festival",
+  "name_cn": "海南岛国际电影节",
+  "tier": "B",
+  "kind": "festival",
+  "country": "中国",
+  "city": "海南三亚",
+  "month_window": "12月",
+  "class_intl": "重要展映",
+  "lineup_status": "未公布",
+  "official_url": "https://www.hiiff.com",
+  "lineup_announce": "2026-11公布",
+  "notes": "金椰奖;非竞赛为主+金椰奖竞赛,全年最后一个大节"
+ },
+ {
+  "id": "changchun",
+  "name": "Changchun Film Festival",
+  "name_cn": "长春电影节",
+  "tier": "B",
+  "kind": "award",
+  "country": "中国",
+  "city": "吉林长春",
+  "month_window": "8-9月",
+  "class_intl": "电影奖项",
+  "lineup_status": "未公布",
+  "official_url": "",
+  "lineup_announce": "2026-08公布提名",
+  "notes": "金鹿奖;国产片为主的评奖型电影节"
  }
 ]

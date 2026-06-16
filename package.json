@@ -17,6 +17,8 @@
     "festivals": "node scripts/seed-festivals.mjs",
     "festfilms": "node scripts/seed-festival-films.mjs",
     "festmatch": "node scripts/match-festival-douban.mjs",
+    "watchlist": "node scripts/ingest-watchlist.mjs",
+    "backfill2025": "node scripts/backfill-2025.mjs",
     "roster": "node scripts/fetch-roster.mjs",
     "ratings": "node scripts/fetch-ratings.mjs",
     "daily": "node scripts/run-daily.mjs",

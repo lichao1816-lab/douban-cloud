@@ -8,8 +8,8 @@
 // ============================================================
 
 import {
-  doubanGet, parseSubjectRatings, selectFilms, updateFilm, insertRun,
-  sentinelOk, pace, dayOfYear,
+  doubanGet, parseSubjectRatings, parseSubjectDetail, parsePoster, fetchImdbRating,
+  selectFilms, updateFilm, insertRun, sentinelOk, pace, dayOfYear,
 } from './lib.mjs';
 
 const RATING_PACE = [1200, 1600];
@@ -93,6 +93,17 @@ async function main() {
     };
     if (r.ratingNum != null) patch.score = r.ratingNum;
     if (r.country) patch.country = r.country;
+
+    // 同页顺手解析:IMDb 评分 + 海报(让保留/重点片的双评分与海报随追踪一起刷新)
+    const det = parseSubjectDetail(html) || {};
+    const poster = parsePoster(html);
+    if (poster) patch.poster_url = poster;
+    if (det.imdb_id) {
+      patch.imdb_id = det.imdb_id;
+      const ir = await fetchImdbRating(det.imdb_id).catch(() => null);
+      await pace(400, 700);
+      if (ir != null) patch.imdb_rating = ir;
+    }
 
     await updateFilm(f.id, patch);
     rated++;

@@ -1,139 +1,194 @@
-/* 阿尔戈斯 · 全球电影情报站 查看端样式(手机优先,亮色简洁) */
+/* 阿尔戈斯 · 全球电影情报站 查看端样式
+   设计方向 A · 影院暗色(参考 MUBI / Letterboxd / A24)。手机优先,响应式。 */
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
-  --bg: #f6f7f9; --card: #ffffff; --ink: #1d2129; --dim: #86909c; --line: #e5e6eb;
-  --green: #00a854; --red: #f53f3f; --gold: #d48806; --blue: #165dff;
-  --radius: 12px;
+  --bg: #0c0e12; --bg2: #14171d; --card: #161a21; --card2: #1c212a;
+  --ink: #eef1f6; --dim: #8b93a3; --faint: #5b6373; --line: #262c37; --line2: #323a48;
+  --gold: #e7b35c; --gold-d: #caa044; --green: #4ec98a; --red: #e8675f; --blue: #6ea8ff;
+  --radius: 14px;
 }
 html { -webkit-text-size-adjust: 100%; }
 body {
   background: var(--bg); color: var(--ink);
-  font: 15px/1.55 -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
-  padding-bottom: 40px;
+  font: 15px/1.6 "Inter", -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  padding-bottom: 56px; -webkit-font-smoothing: antialiased;
 }
+a { color: inherit; text-decoration: none; }
+.mono-num { font-family: "Bebas Neue", sans-serif; }
 
 /* ---------- 顶栏 ---------- */
-.topbar { position: sticky; top: 0; z-index: 10; background: rgba(246,247,249,.96); backdrop-filter: blur(8px); padding: 10px 12px 8px; border-bottom: 1px solid var(--line); }
-.title-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
-h1 { font-size: 17px; font-weight: 700; }
-.updated { font-size: 12px; color: var(--dim); }
+.topbar { position: sticky; top: 0; z-index: 20; background: rgba(12,14,18,.82); backdrop-filter: blur(14px); border-bottom: 1px solid var(--line); }
+.brand-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; max-width: 880px; margin: 0 auto; padding: 13px 16px 11px; flex-wrap: wrap; }
+.brand { display: flex; align-items: center; gap: 11px; }
+.logo { width: 34px; height: 34px; border-radius: 9px; background: linear-gradient(145deg,#e7b35c,#b9832e); display: flex; align-items: center; justify-content: center; color: #1a1206; font-weight: 700; font-size: 19px; font-family: "Bebas Neue", sans-serif; flex-shrink: 0; }
+.brand-text h1 { font-size: 16px; font-weight: 700; letter-spacing: .3px; line-height: 1.15; }
+.brand-sub { font-size: 10px; color: var(--faint); letter-spacing: 2.5px; margin-top: 2px; }
+.updated { font-size: 11.5px; color: var(--faint); display: flex; align-items: center; gap: 6px; }
+.updated::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); display: inline-block; }
 
 /* ---------- 分段按钮 ---------- */
-.seg { display: flex; gap: 6px; margin-top: 8px; overflow-x: auto; scrollbar-width: none; }
+.seg { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
 .seg::-webkit-scrollbar { display: none; }
 .seg button {
   flex-shrink: 0; border: 1px solid var(--line); background: var(--card);
   color: var(--dim); border-radius: 999px; padding: 6px 13px; font-size: 13px; cursor: pointer;
+  font-family: inherit; transition: all .15s;
 }
-.seg button.active { background: var(--blue); border-color: var(--blue); color: #fff; }
-.seg button em { font-style: normal; opacity: .8; font-size: 11px; }
-.seg-main button { font-size: 14px; padding: 7px 14px; font-weight: 600; }
+.seg button:hover { border-color: var(--line2); color: var(--ink); }
+.seg button.active { background: var(--gold); border-color: var(--gold); color: #1a1206; font-weight: 600; }
+.seg button em { font-style: normal; opacity: .75; font-size: 11px; }
+.seg-main { max-width: 880px; margin: 0 auto; padding: 0 12px 11px; gap: 4px; }
+.seg-main button { font-size: 14px; padding: 8px 15px; font-weight: 500; border: none; background: transparent; border-radius: 9px; color: var(--dim); }
+.seg-main button:hover { background: var(--card2); color: var(--ink); }
+.seg-main button.active { background: var(--card2); color: var(--gold); font-weight: 600; }
 .seg-wrap { flex-wrap: wrap; }
 
 /* ---------- 子栏/筛选 ---------- */
-.section { max-width: 760px; margin: 0 auto; }
-.subbar { padding: 4px 12px 8px; }
-.filters { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+.section { max-width: 880px; margin: 0 auto; }
+.subbar { padding: 14px 16px 8px; display: flex; flex-direction: column; gap: 9px; }
+.filters { display: flex; gap: 7px; flex-wrap: wrap; }
 .filters select, .filters input {
-  background: var(--card); color: var(--ink); border: 1px solid var(--line);
-  border-radius: 8px; padding: 7px 10px; font-size: 13px; flex: 1; min-width: 110px;
+  background: var(--card2); color: var(--ink); border: 1px solid var(--line);
+  border-radius: 9px; padding: 8px 11px; font-size: 13px; flex: 1; min-width: 110px; font-family: inherit;
 }
-.count-row { margin-top: 6px; font-size: 12px; color: var(--dim); }
+.filters select:focus, .filters input:focus { outline: none; border-color: var(--gold-d); }
+.filters input::placeholder { color: var(--faint); }
+.count-row { font-size: 12px; color: var(--faint); letter-spacing: .3px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+
+/* 添加监测 */
+.addwatch-toggle { border: 1px solid rgba(231,179,92,.4); background: rgba(231,179,92,.1); color: var(--gold); border-radius: 999px; padding: 5px 12px; font-size: 12px; cursor: pointer; font-family: inherit; }
+.addwatch-toggle:hover { background: rgba(231,179,92,.18); }
+.addwatch-form { display: flex; gap: 7px; margin-top: 9px; flex-wrap: wrap; }
+.addwatch-form input { flex: 1; min-width: 160px; background: var(--card2); color: var(--ink); border: 1px solid var(--line); border-radius: 9px; padding: 8px 11px; font-size: 13px; font-family: inherit; }
+.addwatch-form input:focus { outline: none; border-color: var(--gold-d); }
+.addwatch-form select { background: var(--card2); color: var(--ink); border: 1px solid var(--line); border-radius: 9px; padding: 8px 10px; font-size: 13px; font-family: inherit; }
+.addwatch-form button { border: 1px solid var(--gold); background: var(--gold); color: #1a1206; border-radius: 9px; padding: 8px 15px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
+
+/* 海报 */
+.poster { width: 58px; height: 84px; border-radius: 8px; flex-shrink: 0; object-fit: cover; background: var(--card2); display: block; }
+.poster.ph { display: flex; align-items: center; justify-content: center; font-family: "Bebas Neue", sans-serif; font-size: 22px; color: var(--faint); background: linear-gradient(145deg,#1c212a,#262c37); }
+
+/* ---------- 列表容器 ---------- */
+.list, .newslist, .festlist { padding: 6px 16px; display: flex; flex-direction: column; gap: 11px; }
 
 /* ---------- 卡片 ---------- */
-.list, .newslist, .festlist { padding: 4px 12px; display: flex; flex-direction: column; gap: 10px; }
-.card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; box-shadow: 0 1px 2px rgba(0,0,0,.03); }
-.card-head { display: flex; justify-content: space-between; gap: 10px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; transition: border-color .2s; }
+.card:hover { border-color: var(--line2); }
+.card-head { display: flex; justify-content: space-between; gap: 12px; }
 .card-titles { min-width: 0; }
-.film-name { font-size: 15px; font-weight: 600; word-break: break-word; }
-.film-orig { font-size: 12px; color: var(--dim); margin-top: 1px; word-break: break-word; }
-.film-meta { font-size: 12px; color: var(--dim); margin-top: 3px; }
-.film-crew { font-size: 12px; color: var(--dim); margin-top: 3px; }
+.film-name { font-size: 16px; font-weight: 600; line-height: 1.32; word-break: break-word; }
+.film-orig { font-size: 12px; color: var(--dim); font-style: italic; margin-top: 2px; word-break: break-word; }
+.film-meta { font-size: 12px; color: var(--faint); margin-top: 6px; }
+.film-crew { font-size: 12px; color: var(--dim); margin-top: 4px; }
 .card-scores { text-align: right; flex-shrink: 0; }
-.score { font-size: 20px; font-weight: 700; color: var(--gold); }
-.score.none { font-size: 12px; color: var(--dim); font-weight: 400; }
-.imdb { font-size: 11px; font-weight: 700; color: #b08800; background: #fdf6e3; border-radius: 6px; padding: 1px 6px; margin-top: 4px; display: inline-block; }
+.score { font-family: "Bebas Neue", sans-serif; font-size: 30px; line-height: .85; color: var(--gold); }
+.score.none { font-family: inherit; font-size: 12px; color: var(--faint); }
+.imdb { font-size: 10.5px; font-weight: 600; color: var(--gold-d); letter-spacing: .4px; margin-top: 6px; display: inline-block; }
 
-.badge { font-size: 10px; padding: 1px 7px; border-radius: 999px; margin-left: 6px; vertical-align: 2px; white-space: nowrap; }
-.badge.s-待筛 { background: #f2f3f5; color: var(--dim); }
-.badge.s-重点关注 { background: #fff7e0; color: var(--gold); }
-.badge.s-保留 { background: #e8f7ef; color: var(--green); }
-.badge.s-淘汰 { background: #feeceb; color: var(--red); }
+/* 状态徽标 */
+.badge { font-size: 10px; padding: 2px 8px; border-radius: 999px; margin-left: 8px; vertical-align: 2px; white-space: nowrap; font-weight: 500; letter-spacing: .3px; }
+.badge.s-待筛 { background: #222834; color: var(--dim); }
+.badge.s-重点关注 { background: rgba(231,179,92,.15); color: var(--gold); }
+.badge.s-保留 { background: rgba(78,201,138,.14); color: var(--green); }
+.badge.s-淘汰 { background: rgba(232,103,95,.14); color: var(--red); }
 
-.trend { display: flex; gap: 14px; margin-top: 8px; font-size: 12px; color: var(--dim); }
+/* 趋势 */
+.trend { display: flex; gap: 16px; margin-top: 10px; font-size: 12px; color: var(--faint); }
 .trend em { font-style: normal; }
-.trend .up { color: var(--green); font-weight: 700; }
-.trend .flat { color: var(--dim); }
+.trend .up { color: var(--green); font-weight: 600; }
+.trend .flat { color: var(--faint); }
 
-.actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+/* 操作按钮 */
+.actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
 .actions a, .actions button {
-  border-radius: 8px; padding: 7px 13px; font-size: 13px; cursor: pointer;
-  border: 1px solid var(--line); background: var(--card); color: var(--ink); text-decoration: none;
+  border-radius: 9px; padding: 7px 13px; font-size: 13px; cursor: pointer; font-family: inherit;
+  border: 1px solid var(--line); background: var(--card2); color: var(--ink); text-decoration: none; transition: all .15s;
 }
+.actions a:hover, .actions button:hover { border-color: var(--line2); }
 .btn-douban { color: var(--blue) !important; }
 .btn-douban.dim { color: var(--dim) !important; }
-.btn-focus { color: var(--gold) !important; border-color: #f3d586 !important; background: #fffaf0 !important; }
-.btn-keep { color: var(--green) !important; border-color: #a8e0c2 !important; background: #f4fcf8 !important; }
-.btn-drop { color: var(--red) !important; border-color: #f5b5b3 !important; background: #fff7f6 !important; }
-.actions button:disabled { opacity: .45; }
+.btn-focus { color: var(--gold) !important; border-color: rgba(231,179,92,.4) !important; background: rgba(231,179,92,.1) !important; }
+.btn-keep { color: var(--green) !important; border-color: rgba(78,201,138,.4) !important; background: rgba(78,201,138,.1) !important; }
+.btn-drop { color: var(--red) !important; border-color: rgba(232,103,95,.4) !important; background: rgba(232,103,95,.1) !important; }
+.actions button:disabled { opacity: .4; cursor: default; }
 
-.empty { text-align: center; color: var(--dim); padding: 36px 0; font-size: 14px; }
-.group-title { font-size: 14px; margin: 14px 2px 2px; }
-.group-title small { color: var(--dim); font-weight: 400; margin-left: 6px; }
+.empty { text-align: center; color: var(--faint); padding: 38px 0; font-size: 14px; }
+.group-title { font-size: 13px; font-weight: 600; color: var(--dim); margin: 18px 2px 2px; letter-spacing: .5px; text-transform: uppercase; }
+.group-title small { color: var(--faint); font-weight: 400; margin-left: 6px; text-transform: none; }
 
 /* ---------- 票房 ---------- */
-.bo-rank { color: var(--gold); font-weight: 800; margin-right: 6px; }
-.bo-gross { font-size: 16px; font-weight: 700; color: var(--green); }
-.bo-total { font-size: 11px; color: var(--dim); margin-top: 2px; }
+.bo-rank { font-family: "Bebas Neue", sans-serif; color: var(--gold); font-size: 18px; margin-right: 8px; vertical-align: 1px; }
+.bo-gross { font-size: 17px; font-weight: 600; color: var(--green); margin-top: 6px; }
+.bo-total { font-size: 10.5px; color: var(--faint); margin-top: 2px; }
 
 /* ---------- 资讯 ---------- */
-.news-item { display: block; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 11px 12px; text-decoration: none; color: var(--ink); }
-.news-item:active { background: #f2f3f5; }
-.news-top { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px; }
-.news-src { color: var(--blue); font-weight: 700; }
-.news-time { color: var(--dim); }
-.news-title { font-size: 14px; font-weight: 600; line-height: 1.4; }
-.news-summary { font-size: 12px; color: var(--dim); margin-top: 4px; line-height: 1.5; }
+.news-item { display: block; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 13px 15px; color: var(--ink); transition: border-color .2s; }
+.news-item:hover { border-color: var(--line2); }
+.news-fest { border-left: 3px solid var(--gold); }
+.news-top { display: flex; align-items: center; gap: 9px; font-size: 11px; margin-bottom: 5px; }
+.news-src { color: var(--gold); font-weight: 600; letter-spacing: .5px; }
+.news-fest-tag { font-size: 10px; color: var(--gold-d); font-weight: 600; }
+.news-time { color: var(--faint); margin-left: auto; }
+.news-title { font-size: 14.5px; font-weight: 500; line-height: 1.45; }
+.news-title-en { font-size: 12px; color: var(--faint); font-style: italic; margin-top: 3px; }
+.news-summary { font-size: 12px; color: var(--dim); margin-top: 5px; line-height: 1.55; }
 
 /* ---------- 电影节 ---------- */
-.tier { display: inline-block; width: 22px; height: 22px; line-height: 22px; text-align: center; border-radius: 6px; font-size: 12px; font-weight: 800; margin-right: 8px; vertical-align: 1px; }
-.tier-S { background: #d48806; color: #fff; }
-.tier-A { background: var(--blue); color: #fff; }
-.tier-B { background: #86909c; color: #fff; }
-.fest-kind { font-size: 10px; color: var(--dim); border: 1px solid var(--line); border-radius: 999px; padding: 1px 7px; margin-left: 8px; vertical-align: 2px; }
-.fest-notes { font-size: 11px; color: var(--dim); margin-top: 4px; }
-.lineup { font-size: 11px; padding: 3px 8px; border-radius: 999px; white-space: nowrap; }
-.lineup.ok { background: #e8f7ef; color: var(--green); }
-.lineup.part { background: #fff7e0; color: var(--gold); }
-.lineup.none { background: #f2f3f5; color: var(--dim); }
-.fest-films { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 8px; }
-.fest-films summary { font-size: 13px; color: var(--blue); cursor: pointer; }
-.fest-film { display: flex; gap: 8px; align-items: baseline; font-size: 13px; padding: 5px 0; border-bottom: 1px dashed var(--line); }
-.ff-section { font-size: 11px; color: var(--gold); flex-shrink: 0; }
-.ff-title { flex: 1; }
-.fest-film a { color: var(--blue); font-size: 12px; text-decoration: none; }
+.tier { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 7px; font-size: 13px; font-weight: 700; font-family: "Bebas Neue", sans-serif; margin-right: 9px; vertical-align: 1px; }
+.tier-S { background: var(--gold); color: #1a1206; }
+.tier-A { background: var(--blue); color: #0a1626; }
+.tier-B { background: #3a4250; color: var(--ink); }
+.fest-kind { font-size: 10px; color: var(--faint); border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; margin-left: 9px; vertical-align: 2px; }
+.fest-notes { font-size: 11px; color: var(--faint); margin-top: 5px; line-height: 1.5; }
+.film-meta.la { color: var(--gold-d); font-weight: 500; }
+.lineup { font-size: 11px; padding: 4px 10px; border-radius: 999px; white-space: nowrap; }
+.lineup.ok { background: rgba(78,201,138,.14); color: var(--green); }
+.lineup.part { background: rgba(231,179,92,.15); color: var(--gold); }
+.lineup.none { background: #222834; color: var(--dim); }
+.fest-films { margin-top: 13px; border-top: 1px solid var(--line); padding-top: 10px; }
+.fest-films summary { font-size: 13px; color: var(--gold); cursor: pointer; list-style: none; }
+.fest-films summary::-webkit-details-marker { display: none; }
+.fest-films summary::before { content: "▸ "; color: var(--gold-d); }
+.fest-films[open] summary::before { content: "▾ "; }
+.fest-film { display: flex; flex-direction: column; gap: 6px; font-size: 13px; padding: 8px 0; border-bottom: 1px dashed var(--line); }
+.ff-line { display: flex; gap: 9px; align-items: baseline; flex-wrap: wrap; }
+.ff-section { font-size: 10.5px; color: var(--gold-d); flex-shrink: 0; }
+.ff-title { flex: 1; min-width: 0; }
+.ff-score { font-size: 11px; color: var(--gold); font-weight: 600; }
+.ff-imdb { font-size: 10.5px; color: var(--gold-d); }
+.ff-acts { display: flex; gap: 7px; flex-wrap: wrap; }
+.ff-act { border-radius: 8px; padding: 4px 11px; font-size: 12px; cursor: pointer; border: 1px solid var(--line); background: var(--card2); color: var(--ink); text-decoration: none; font-family: inherit; }
+.ff-act.btn-focus { color: var(--gold) !important; border-color: rgba(231,179,92,.4) !important; background: rgba(231,179,92,.1) !important; }
+.ff-act.btn-keep { color: var(--green) !important; border-color: rgba(78,201,138,.4) !important; background: rgba(78,201,138,.1) !important; }
+.ff-act.btn-douban { color: var(--blue) !important; }
+.ff-act.btn-douban.dim { color: var(--dim) !important; }
+
+/* 资讯影片卡(命中片库的新闻) */
+.news-card .news-attach { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 10px; }
+.news-card .news-attach.news-fest { border-left: 3px solid var(--gold); padding-left: 11px; border-radius: 0; }
+.news-card .news-title { font-size: 13.5px; font-weight: 500; line-height: 1.45; margin-top: 2px; }
+.news-card .news-summary { font-size: 12px; color: var(--dim); margin-top: 5px; line-height: 1.55; }
+.news-orig { display: inline-block; margin-top: 7px; font-size: 12px; color: var(--blue); }
+
+/* 情报雷达 */
+.radar { background: var(--card2); border: 1px solid rgba(231,179,92,.3); border-radius: var(--radius); padding: 15px 16px; margin-bottom: 14px; }
+.radar-head { font-weight: 600; margin-bottom: 10px; color: var(--gold); font-size: 14px; }
+.radar-item { padding: 5px 0; font-size: 13.5px; color: var(--ink); }
+.radar-item .tier { margin-right: 7px; }
+.radar-item strong { font-weight: 600; }
+.radar-tip { margin-top: 10px; font-size: 12px; color: var(--faint); line-height: 1.55; }
 
 /* ---------- toast ---------- */
 .toast {
   position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%) translateY(20px);
-  background: #1d2129; color: #fff; padding: 9px 18px; border-radius: 999px; font-size: 13px;
+  background: var(--gold); color: #1a1206; padding: 10px 20px; border-radius: 999px; font-size: 13px; font-weight: 600;
   opacity: 0; pointer-events: none; transition: all .25s; z-index: 99;
 }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-@media (min-width: 700px) {
-  .list { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+/* ---------- 响应式:桌面双列 ---------- */
+@media (min-width: 760px) {
+  .list { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; align-items: start; }
   .list .empty, .list .group-title { grid-column: 1 / -1; }
-  h1 { font-size: 19px; }
+  .brand-text h1 { font-size: 18px; }
 }
-
-/* ===== v3 增量样式(2026-06-12):资讯中文化/节展雷达/票房详情 ===== */
-.news-title-en { margin: 2px 0 0; font-size: 12px; color: #8a94a6; }
-.news-fest { border-left: 3px solid #e8590c; }
-.news-fest-tag { margin-left: 8px; font-size: 11px; color: #e8590c; font-weight: 600; }
-.radar { background: linear-gradient(135deg,#fff7ed,#fff); border: 1px solid #fdba74; border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; }
-.radar-head { font-weight: 700; margin-bottom: 8px; color: #9a3412; }
-.radar-item { padding: 4px 0; font-size: 13.5px; color: #333; }
-.radar-item .tier { margin-right: 6px; }
-.radar-tip { margin-top: 8px; font-size: 12px; color: #9a3412; opacity: .8; }
-.film-meta.la { color: #b45309; font-weight: 600; }
