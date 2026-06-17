@@ -22,6 +22,7 @@
     "backfill2025:loop": "node scripts/backfill-2025-loop.mjs",
     "roster": "node scripts/fetch-roster.mjs",
     "ratings": "node scripts/fetch-ratings.mjs",
+    "posters": "node scripts/backfill-posters.mjs",
     "daily": "node scripts/run-daily.mjs",
     "build:config": "node scripts/generate-config.mjs",
     "serve": "node scripts/serve.mjs"

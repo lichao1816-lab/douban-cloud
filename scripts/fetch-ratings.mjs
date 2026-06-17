@@ -9,7 +9,7 @@
 
 import {
   doubanGet, parseSubjectRatings, parseSubjectDetail, parsePoster, fetchImdbRating,
-  selectFilms, updateFilm, insertRun, sentinelOk, pace, dayOfYear,
+  selectFilms, updateFilm, insertRun, sentinelOk, pace, dayOfYear, sb,
 } from './lib.mjs';
 
 const RATING_PACE = [1200, 1600];
@@ -106,6 +106,25 @@ async function main() {
     }
 
     await updateFilm(f.id, patch);
+
+    // 每日快照:写一行进 rating_history(同 sid+同日 覆盖),供前端画多日五星走势曲线。
+    // 失败不影响主流程(快照表可能还没建)。
+    try {
+      await sb(
+        'POST',
+        'rating_history?on_conflict=sid,snap_date',
+        [{
+          sid: String(f.id), snap_date: TODAY,
+          star1: r.star1 ?? null, star2: r.star2 ?? null, star3: r.star3 ?? null,
+          star4: r.star4 ?? null, star5: r.star5 ?? null,
+          comments: r.comments ?? null, score: r.ratingNum ?? null,
+        }],
+        { Prefer: 'resolution=merge-duplicates,return=minimal' },
+      );
+    } catch (e) {
+      if (rated === 0) console.warn('[ratings] 快照写入失败(rating_history 是否已建?):', String(e).slice(0, 120));
+    }
+
     rated++;
     if (rated % 10 === 0) console.log(`[ratings] 已更新 ${rated} 片`);
   }

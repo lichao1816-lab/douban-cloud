@@ -81,6 +81,7 @@ async function main() {
         douban_url: cand.url,
         douban_score: ratings.ratingNum ?? detail.score ?? null,
         douban_rating_people: ratings.ratingPeople ?? null,
+        imdb_id: detail.imdb_id || null,
         imdb_rating: imdbRating,
         douban_matched_at: new Date().toISOString(),
       };

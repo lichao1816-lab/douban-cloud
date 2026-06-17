@@ -465,6 +465,27 @@ export function parseBomIntl(html) {
   return out;
 }
 
+/** parseBomMarketTotal — 当周该市场大盘:把榜单上【全部】影片的周末票房相加。
+ *  各市场页内币种一致,故按数字求和并沿用首行的币种符号/前缀。返回原始字符串或 null。 */
+export function parseBomMarketTotal(html) {
+  if (!html) return null;
+  const rowRe = /<tr>([\s\S]*?)<\/tr>/g;
+  let m, sum = 0, n = 0, prefix = '';
+  while ((m = rowRe.exec(html))) {
+    const row = m[1];
+    if (!/href="\/release\//.test(row)) continue; // 只算有影片链接的数据行
+    const money = (row.match(/mojo-field-type-money[^>]*>([^<]+)</) || [])[1];
+    if (!money) continue;
+    const digits = money.replace(/[^\d]/g, '');
+    if (!digits) continue;
+    if (!prefix) prefix = (money.match(/^[^\d]*/) || [''])[0].trim(); // 币种符号,如 $ / £ / ₩
+    sum += parseInt(digits, 10);
+    n++;
+  }
+  if (!n) return null;
+  return `${prefix}${sum.toLocaleString('en-US')}`;
+}
+
 /** parseBomWeekendChart — 解析单市场周末榜,取前N名 */
 export function parseBomWeekendChart(html, topN = 3) {
   if (!html) return [];

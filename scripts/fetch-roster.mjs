@@ -15,15 +15,39 @@ import {
 // ---------- 配置(与项目口径一致;在此调整即可)----------
 const YEARS = [2026, 2027];
 
-// 主要产地 + 轮换:全量国家太多会拖慢/触限速。
-// 这里覆盖产量靠前的国家;若想全覆盖,可按 dayOfYear 轮换分批。
-// 注:豆瓣 countries 参数用中文国名。
-// ★口径(李超 06-11 定):中国大陆/中国香港/中国台湾 全部收录。
-const COUNTRIES = [
+// ★全口径(李超 06-16 定):覆盖所有有进口片的国家,一个不漏。
+// 注:豆瓣 countries 参数用中文国名。中国大陆/香港/台湾全部收录(06-11)。
+//
+// 策略:核心产地每天都扫;长尾小国按 dayOfYear 分 ROTATION_DAYS 批轮换,
+// 每天只扫其中一批 —— 全库去重保证延迟几天入库也不会漏,只是稍晚出现在"待筛"。
+const CORE_COUNTRIES = [
   '美国', '中国大陆', '中国香港', '中国台湾', '日本', '韩国',
   '英国', '法国', '德国', '意大利', '西班牙', '印度',
   '加拿大', '澳大利亚', '巴西', '泰国', '俄罗斯', '墨西哥', '阿根廷',
 ];
+
+const ROTATION_COUNTRIES = [
+  '瑞典', '丹麦', '挪威', '芬兰', '冰岛', '荷兰', '比利时', '瑞士', '奥地利', '葡萄牙',
+  '希腊', '波兰', '捷克', '匈牙利', '罗马尼亚', '爱尔兰', '乌克兰', '塞尔维亚', '克罗地亚', '保加利亚',
+  '斯洛伐克', '爱沙尼亚', '拉脱维亚', '立陶宛', '格鲁吉亚', '印度尼西亚', '菲律宾', '越南', '马来西亚', '新加坡',
+  '柬埔寨', '以色列', '伊朗', '土耳其', '沙特阿拉伯', '埃及', '摩洛哥', '阿联酋', '黎巴嫩', '南非',
+  '尼日利亚', '塞内加尔', '突尼斯', '智利', '哥伦比亚', '秘鲁', '乌拉圭', '哈萨克斯坦', '蒙古', '孟加拉国',
+  '巴基斯坦', '斯里兰卡', '尼泊尔',
+];
+
+const ROTATION_DAYS = 4;   // 长尾分 4 批,每个小国约每 4 天扫一次
+
+function dayOfYear(d = new Date()) {
+  const start = Date.UTC(d.getFullYear(), 0, 0);
+  const now = Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
+  return Math.floor((now - start) / 86400000);
+}
+
+// 当天实际要扫的国家 = 全部核心 + 当天轮到的那批长尾
+const rotationBatch = ROTATION_COUNTRIES.filter(
+  (_, i) => i % ROTATION_DAYS === dayOfYear() % ROTATION_DAYS,
+);
+const COUNTRIES = [...CORE_COUNTRIES, ...rotationBatch];
 
 const PAGES_PER = 3;       // 每个 (国家,年份) 拉的页数
 const PAGE_SIZE = 20;      // 豆瓣每页 20 条
@@ -51,7 +75,9 @@ async function isMovie(sid) {
 
 async function main() {
   const startedAt = new Date().toISOString();
-  console.log('[roster] 开始,哨兵检测...');
+  console.log(`[roster] 开始(全口径轮换):核心 ${CORE_COUNTRIES.length} 国 + 今日长尾批 ${rotationBatch.length} 国 = ${COUNTRIES.length} 国`);
+  console.log(`[roster] 今日长尾批: ${rotationBatch.join('、') || '(无)'}`);
+  console.log('[roster] 哨兵检测...');
   if (!(await sentinelOk())) {
     await insertRun({
       kind: 'roster', status: 'blocked', blocked: true,

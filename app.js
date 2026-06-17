@@ -75,8 +75,8 @@
   // ============================================================
   // 板块1:豆瓣情报
   // ============================================================
-  const FILM_SELECT = 'douban_films?select=id,name,orig_name,country,countries,year,score,imdb_rating,poster_url,' +
-    'genres,directors,actors,duration,status,douban_url,star5,d_star5,comments,d_comments';
+  const FILM_SELECT = 'douban_films?select=id,name,orig_name,country,countries,year,score,imdb_id,imdb_rating,poster_url,' +
+    'genres,directors,actors,duration,status,douban_url,star1,star2,star3,star4,star5,d_star5,comments,d_comments';
   let loadedAll = false;
   const loadedYears = new Set();
 
@@ -168,9 +168,13 @@
         (r.directors || '').toLowerCase().includes(q));
     }
     rows = rows.slice();
-    // 重点关注默认按"今日新增5星"高→低排(增长最猛的置顶)
-    if (state.sort === 'default' && state.status === '重点关注') {
-      rows.sort((a, b) => (b.d_star5 ?? -1) - (a.d_star5 ?? -1));
+    // 重点关注 / 保留 默认都按"今日新增5星"高→低排(增长最猛的置顶,一眼看到该点哪几部)。
+    // 同分时再按 5星总数、评分兜底,保证有料的稳定靠前。
+    if (state.sort === 'default' && (state.status === '重点关注' || state.status === '保留')) {
+      rows.sort((a, b) =>
+        (b.d_star5 ?? -1) - (a.d_star5 ?? -1) ||
+        (b.star5 ?? -1) - (a.star5 ?? -1) ||
+        (b.score ?? -1) - (a.score ?? -1));
     }
     switch (state.sort) {
       case 'score_desc': rows.sort((a, b) => (b.score ?? -1) - (a.score ?? -1)); break;
@@ -257,12 +261,34 @@
     return `<div class="poster ph">${escapeHtml(nm)}</div>`;
   }
 
+  // IMDb 链接按钮(有 imdb_id 才出)
+  function imdbLink(imdbId) {
+    return imdbId
+      ? `<a class="btn-imdb" href="https://www.imdb.com/title/${escapeHtml(imdbId)}/" target="_blank" rel="noopener">IMDb↗</a>`
+      : '';
+  }
+
+  // 五星分布迷你条:1~5 星占比堆叠,5星段烫金描边突出
+  function starBars(r) {
+    const s = [r.star1, r.star2, r.star3, r.star4, r.star5].map((x) => x ?? 0);
+    const tot = s.reduce((a, b) => a + b, 0);
+    if (!tot) return '';
+    const pct = (n) => ((n / tot) * 100).toFixed(1) + '%';
+    const seg = (n, cls) => n > 0 ? `<span class="sb ${cls}" style="width:${pct(n)}" title="${cls === 'sb5' ? '5星 ' : ''}${num(n)} (${pct(n)})"></span>` : '';
+    const p5 = ((s[4] / tot) * 100).toFixed(0);
+    return `<div class="starbars" title="五星占比 ${p5}%">${seg(s[0], 'sb1')}${seg(s[1], 'sb2')}${seg(s[2], 'sb3')}${seg(s[3], 'sb4')}${seg(s[4], 'sb5')}</div>
+        <span class="star5-share">5★ ${p5}%</span>`;
+  }
+
   function cardHtml(r) {
     const scoreHtml = r.score != null
       ? `<div class="score">${r.score}</div>`
       : `<div class="score none">未开分</div>`;
     const imdbHtml = r.imdb_rating != null ? `<div class="imdb">IMDb ${r.imdb_rating}</div>` : '';
     const badge = `<span class="badge s-${r.status}">${r.status === '重点关注' ? '⭐重点关注' : r.status}</span>`;
+    // 24h 新增 5星 → 高亮:有新增就上 🔥 角标 + 卡片描边,让你一眼锁定该点哪几部
+    const hot = (r.d_star5 ?? 0) > 0;
+    const fire = hot ? `<span class="fire">🔥 +${num(r.d_star5)}★5</span>` : '';
     const orig = r.orig_name ? `<p class="film-orig">${escapeHtml(r.orig_name)}</p>` : '';
     const meta = [
       escapeHtml(r.countries || r.country || '—'),
@@ -274,11 +300,11 @@
       ? `<div class="film-crew">${r.directors ? '导演: ' + escapeHtml(r.directors) : ''}${r.directors && r.actors ? ' ｜ ' : ''}${r.actors ? '主演: ' + escapeHtml(r.actors) : ''}</div>`
       : '';
     return `
-      <div class="card" data-id="${r.id}">
+      <div class="card${hot ? ' hot' : ''}" data-id="${r.id}">
         <div class="card-head">
           ${posterHtml(r)}
           <div class="card-titles">
-            <p class="film-name">${escapeHtml(r.name)}${badge}</p>
+            <p class="film-name">${escapeHtml(r.name)}${badge}${fire}</p>
             ${orig}
             <div class="film-meta">${meta}</div>
             ${crew}
@@ -286,14 +312,63 @@
           <div class="card-scores">${scoreHtml}${imdbHtml}</div>
         </div>
         <div class="trend">
-          <span>★5 ${num(r.star5)}${delta(r.d_star5)}</span>
+          <span class="t5">★5 ${num(r.star5)}${delta(r.d_star5)}</span>
           <span>短评 ${num(r.comments)}${delta(r.d_comments)}</span>
+          ${starBars(r)}
+          <span class="spark" data-spark="${r.id}"></span>
         </div>
         <div class="actions">
           <a class="btn-douban" href="${r.douban_url || '#'}" target="_blank" rel="noopener">豆瓣↗</a>
+          ${imdbLink(r.imdb_id)}
           ${actionBtns(r)}
         </div>
       </div>`;
+  }
+
+  // ---------- 五星走势:rating_history 快照(懒加载 + 缓存) ----------
+  const HIST = new Map();   // sid -> [{d:snap_date, s5:star5}] 升序;查过但无数据存 []
+
+  // 迷你走势图:近 14 个快照的 5星折线 + 区间净增
+  function sparkSvg(arr) {
+    if (!arr || arr.length < 2) return '<span class="spark-na">走势积累中</span>';
+    const last = arr.slice(-14).filter((p) => p.s5 != null);
+    if (last.length < 2) return '<span class="spark-na">走势积累中</span>';
+    const ys = last.map((p) => p.s5);
+    const min = Math.min(...ys), max = Math.max(...ys), span = (max - min) || 1;
+    const W = 64, H = 18;
+    const pts = ys.map((v, i) =>
+      `${((i / (ys.length - 1)) * W).toFixed(1)},${(H - ((v - min) / span) * H).toFixed(1)}`).join(' ');
+    const gain = ys[ys.length - 1] - ys[0];
+    return `<svg class="spark-svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" preserveAspectRatio="none">` +
+      `<polyline points="${pts}" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>` +
+      `<span class="spark-gain">${ys.length}d ${gain >= 0 ? '+' : ''}${gain}★5</span>`;
+  }
+
+  // 拉取一批 sid 的快照,填进 HIST,再把已渲染卡片里的 .spark 占位填上
+  async function ensureHistory(sids) {
+    const need = sids.filter((s) => !HIST.has(s));
+    if (need.length) {
+      for (let i = 0; i < need.length; i += 100) {
+        const chunk = need.slice(i, i + 100);
+        try {
+          const rows = await fetchAll(
+            'rating_history?select=sid,snap_date,star5&sid=in.(' +
+            chunk.map(encodeURIComponent).join(',') + ')&order=snap_date.asc', 1000, 6000);
+          const g = new Map();
+          for (const r of rows) {
+            if (!g.has(r.sid)) g.set(r.sid, []);
+            g.get(r.sid).push({ d: r.snap_date, s5: r.star5 });
+          }
+          for (const s of chunk) HIST.set(s, g.get(s) || []);
+        } catch { for (const s of chunk) HIST.set(s, []); }
+      }
+    }
+    // 回填 DOM(只动当前还空着的占位,避免打断滚动)
+    document.querySelectorAll('.spark[data-spark]').forEach((el) => {
+      if (el.dataset.done) return;
+      const h = HIST.get(el.dataset.spark);
+      if (h !== undefined) { el.innerHTML = sparkSvg(h); el.dataset.done = '1'; }
+    });
   }
 
   function renderDouban() {
@@ -301,8 +376,13 @@
     $('#resultCount').textContent = rows.length + ' 部';
     if (!rows.length) { listEl.innerHTML = '<div class="empty">没有符合条件的影片</div>'; return; }
     const MAX = 600;
-    listEl.innerHTML = rows.slice(0, MAX).map(cardHtml).join('') +
+    const shown = rows.slice(0, MAX);
+    listEl.innerHTML = shown.map(cardHtml).join('') +
       (rows.length > MAX ? `<div class="empty">仅显示前 ${MAX} 部,请用筛选缩小范围</div>` : '');
+    // 仅对追踪中的列表(重点关注/保留)拉走势,待筛量大且不追踪、跳过
+    if (state.status === '重点关注' || state.status === '保留') {
+      ensureHistory(shown.map((r) => String(r.id))).catch(() => {});
+    }
   }
 
   // ============================================================
@@ -310,7 +390,7 @@
   // ============================================================
   async function loadBoxoffice() {
     const rows = await fetchAll(
-      'boxoffice_entries?select=market,market_code,period,rank,title,weekend_gross,total_gross,weeks,douban_sid,douban_url,fetched_at' +
+      'boxoffice_entries?select=market,market_code,period,rank,title,weekend_gross,total_gross,market_total,weeks,douban_sid,douban_url,fetched_at' +
       '&order=fetched_at.desc&limit=3000', 1000, 3000);
     // 每市场只留最新 period
     const latest = new Map(); // market -> period
@@ -333,10 +413,19 @@
     const film = r.douban_sid ? FILM_BY_ID.get(r.douban_sid) : null;
     const bf = !film && r.douban_sid ? BO_FILMS.get(r.douban_sid) : null;
     const d = film || bf; // 详情来源:筛片库优先,其次票房片缓存
-    const link = r.douban_url
-      ? `<a class="btn-douban" href="${r.douban_url}" target="_blank" rel="noopener">豆瓣↗</a>`
+    // 链接:匹配到了就给真实豆瓣链接;没匹配上才回退"搜豆瓣"(mini 跑过匹配后多数会有真链接)
+    const dbUrl = r.douban_url || (d && d.douban_url) || '';
+    const link = dbUrl
+      ? `<a class="btn-douban" href="${escapeHtml(dbUrl)}" target="_blank" rel="noopener">豆瓣↗</a>`
       : `<a class="btn-douban dim" href="https://www.douban.com/search?cat=1002&q=${encodeURIComponent(r.title)}" target="_blank" rel="noopener">搜豆瓣↗</a>`;
-    const btns = film ? actionBtns(film) : '';
+    const imdbId = d && d.imdb_id;
+    // 按钮:已在筛片库→库内状态按钮;否则只要匹配到 sid 就给"⭐重点/保留"一键加监测
+    let btns = '';
+    if (film) btns = actionBtns(film);
+    else if (r.douban_sid) {
+      btns = `<button class="btn-focus" data-watch="重点关注" data-source="boxoffice" data-sid="${escapeHtml(r.douban_sid)}" data-url="${escapeHtml(dbUrl)}">⭐重点</button>` +
+             `<button class="btn-keep" data-watch="保留" data-source="boxoffice" data-sid="${escapeHtml(r.douban_sid)}" data-url="${escapeHtml(dbUrl)}">保留</button>`;
+    }
     const badge = film ? `<span class="badge s-${film.status}">${film.status === '重点关注' ? '⭐重点关注' : film.status}</span>` : '';
     const cnName = d && d.name && d.name !== r.title ? `<p class="film-orig">${escapeHtml(d.name)}</p>` : '';
     const detailMeta = d ? [
@@ -356,17 +445,18 @@
           <div class="card-titles">
             <p class="film-name"><span class="bo-rank">#${r.rank}</span>${escapeHtml(r.title)}${badge}</p>
             ${cnName}
-            <div class="film-meta">${escapeHtml(r.market)} · ${escapeHtml(r.period)}${r.weeks ? ' · 第' + r.weeks + '周' : ''}</div>
+            <div class="film-meta">${escapeHtml(r.market)} · 档期 ${escapeHtml(r.period)}${r.weeks ? ' · 上映第' + r.weeks + '周' : ''}</div>
             ${detailMeta ? `<div class="film-meta">${detailMeta}</div>` : ''}
             ${crew}
           </div>
           <div class="card-scores">
             ${scoreHtml}${imdbHtml}
-            <div class="bo-gross">${escapeHtml(r.weekend_gross || '—')}</div>
+            <div class="bo-gross">周末 ${escapeHtml(r.weekend_gross || '—')}</div>
             <div class="bo-total">累计 ${escapeHtml(r.total_gross || '—')}</div>
+            ${r.market_total ? `<div class="bo-market" title="当周该市场全部在榜影片票房之和">大盘 ${escapeHtml(r.market_total)}</div>` : ''}
           </div>
         </div>
-        <div class="actions">${link}${btns}</div>
+        <div class="actions">${link}${imdbLink(imdbId)}${btns}</div>
       </div>`;
   }
 
@@ -534,14 +624,19 @@
     const kindCn = { festival: '电影节', award: '奖项', market: '交易市场' }[f.kind] || '';
     const lineupCls = f.lineup_status === '已公布' ? 'ok' : f.lineup_status === '部分公布' ? 'part' : 'none';
     const ffRow = (x) => {
-      const sc = x.douban_score != null ? `<span class="ff-score">豆 ${x.douban_score}</span>` : '';
+      const sc = x.douban_score != null
+        ? `<span class="ff-score">豆 ${x.douban_score}</span>`
+        : (x.douban_sid ? '<span class="ff-score none">豆 未开分</span>' : '');
       const im = x.imdb_rating != null ? `<span class="ff-imdb">IMDb ${x.imdb_rating}</span>` : '';
       const link = x.douban_url
-        ? `<a class="ff-act btn-douban" href="${x.douban_url}" target="_blank" rel="noopener">豆瓣↗</a>`
+        ? `<a class="ff-act btn-douban" href="${escapeHtml(x.douban_url)}" target="_blank" rel="noopener">豆瓣↗</a>`
         : `<a class="ff-act btn-douban dim" href="https://www.douban.com/search?cat=1002&q=${encodeURIComponent(x.title)}" target="_blank" rel="noopener">搜豆瓣↗</a>`;
+      const imdbBtn = x.imdb_id
+        ? `<a class="ff-act btn-imdb" href="https://www.imdb.com/title/${escapeHtml(x.imdb_id)}/" target="_blank" rel="noopener">IMDb↗</a>`
+        : '';
       const watch = x.douban_sid
-        ? `<button class="ff-act btn-focus" data-watch="重点关注" data-sid="${escapeHtml(x.douban_sid)}" data-url="${escapeHtml(x.douban_url || '')}">⭐重点</button>` +
-          `<button class="ff-act btn-keep" data-watch="保留" data-sid="${escapeHtml(x.douban_sid)}" data-url="${escapeHtml(x.douban_url || '')}">保留</button>`
+        ? `<button class="ff-act btn-focus" data-watch="重点关注" data-source="festival" data-sid="${escapeHtml(x.douban_sid)}" data-url="${escapeHtml(x.douban_url || '')}">⭐重点</button>` +
+          `<button class="ff-act btn-keep" data-watch="保留" data-source="festival" data-sid="${escapeHtml(x.douban_sid)}" data-url="${escapeHtml(x.douban_url || '')}">保留</button>`
         : '';
       return `
         <div class="fest-film">
@@ -550,7 +645,7 @@
             <span class="ff-title">${escapeHtml(x.title)}${x.prize ? ' 🏅' + escapeHtml(x.prize) : ''}</span>
             ${sc}${im}
           </div>
-          <div class="ff-acts">${link}${watch}</div>
+          <div class="ff-acts">${link}${imdbBtn}${watch}</div>
         </div>`;
     };
     const filmsHtml = films.length
@@ -730,7 +825,7 @@
       if (w) {
         e.preventDefault();
         w.disabled = true;
-        addToWatchlist(w.dataset.sid, w.dataset.url, w.dataset.watch, 'festival')
+        addToWatchlist(w.dataset.sid, w.dataset.url, w.dataset.watch, w.dataset.source || 'festival')
           .catch((err) => toast('失败: ' + err.message))
           .finally(() => { w.disabled = false; });
       }

@@ -7,7 +7,7 @@
 // ============================================================
 
 import {
-  fetchText, parseBomIntl, parseBomWeekendChart, doubanSuggest,
+  fetchText, parseBomIntl, parseBomWeekendChart, parseBomMarketTotal, doubanSuggest,
   sb, insertRun, pace,
 } from './lib.mjs';
 
@@ -43,6 +43,7 @@ async function main() {
     await pace(...BOM_PACE);
     const top = parseBomWeekendChart(chartHtml, 3);
     if (!top.length) continue;
+    const marketTotal = parseBomMarketTotal(chartHtml); // 当周该市场大盘(全部在榜片之和)
 
     const entries = [];
     for (const t of top) {
@@ -57,6 +58,7 @@ async function main() {
         market: marketCn, market_code: mk.code,
         period: mk.weekendLabel, rank: t.rank, title: t.title,
         weekend_gross: t.weekend_gross, total_gross: t.total_gross, weeks: t.weeks,
+        market_total: marketTotal,
         fetched_at: new Date().toISOString(),
       };
       // 只有真正做了匹配才写 douban 字段;SKIP 模式下不带这两列,
