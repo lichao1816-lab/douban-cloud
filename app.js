@@ -371,7 +371,35 @@
     });
   }
 
+  // 今日五星异动 TOP:跨状态扫已加载片库,挑 24h 新增 5星最多的几部置顶提示,
+  // 一键点进豆瓣看网友写了什么(时效性 = 核心诉求)。
+  function renderMoversRadar() {
+    const el = document.getElementById('moversRadar');
+    if (!el) return;
+    const movers = ALL.filter((r) => (r.d_star5 ?? 0) > 0)
+      .sort((a, b) => (b.d_star5 - a.d_star5) || ((b.star5 ?? 0) - (a.star5 ?? 0)))
+      .slice(0, 8);
+    if (!movers.length) { el.hidden = true; el.innerHTML = ''; return; }
+    el.hidden = false;
+    el.innerHTML =
+      `<div class="radar-head">🔥 今日五星异动 TOP${movers.length}<small>本轮刷新内新增 5 星最多</small></div>` +
+      movers.map((r, i) => {
+        const badge = `<span class="badge s-${r.status}">${r.status === '重点关注' ? '⭐重点关注' : r.status}</span>`;
+        const sc = r.score != null ? `豆 ${r.score}` : '未开分';
+        const im = r.imdb_rating != null ? ` · IMDb ${r.imdb_rating}` : '';
+        return `<div class="mv-item">
+          <span class="mv-rank">${i + 1}</span>
+          <span class="mv-gain">+${num(r.d_star5)}★5</span>
+          <span class="mv-name">${escapeHtml(r.name)}${badge}</span>
+          <span class="mv-score">${sc}${im}</span>
+          <a class="mv-link btn-douban" href="${r.douban_url || '#'}" target="_blank" rel="noopener">豆瓣↗</a>
+          ${r.imdb_id ? `<a class="mv-link btn-imdb" href="https://www.imdb.com/title/${escapeHtml(r.imdb_id)}/" target="_blank" rel="noopener">IMDb↗</a>` : ''}
+        </div>`;
+      }).join('');
+  }
+
   function renderDouban() {
+    renderMoversRadar();
     const rows = applyFilters();
     $('#resultCount').textContent = rows.length + ' 部';
     if (!rows.length) { listEl.innerHTML = '<div class="empty">没有符合条件的影片</div>'; return; }
